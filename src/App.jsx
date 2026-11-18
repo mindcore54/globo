@@ -93,6 +93,18 @@ function calculateNextRisk(currentRisk, heavyAirActive) {
   return Math.min(99.0, Number((currentRisk + increment).toFixed(1)));
 }
 
+/**
+ * Devuelve true solo si el jugador está en el último lugar en vidas (y no hay empate total).
+ */
+function isPlayerInLastPlace(players, player) {
+  if (!player || player.lives <= 0) return false;
+  const aliveLives = players.filter((p) => p.lives > 0).map((p) => p.lives);
+  if (aliveLives.length === 0) return false;
+  const maxLives = Math.max(...aliveLives);
+  const minLives = Math.min(...aliveLives);
+  return minLives < maxLives && player.lives === minLives;
+}
+
 export default function App() {
   const [phase, setPhase] = useState('setup'); // 'setup' | 'playing' | 'victory'
   const [savedRoster, setSavedRoster] = useState([]);
@@ -446,16 +458,23 @@ export default function App() {
   const advanceToNewRound = useCallback(
     (current) => {
       const newDirection = Math.random() < 0.5 ? 1 : -1;
-      const resetPlayers = current.players.map((p) => ({
-        ...p,
-        previousHand: p.lives > 0 ? [...p.hand] : [],
-        hand: [],
-        needsDraft: p.lives > 0,
-        silencedBy: null,
-        desquicioBy: null,
-        sabotagedBy: null,
-        cursedRiskBy: null,
-      }));
+      const resetPlayers = current.players.map((p) => {
+        const canKeepPurple = isPlayerInLastPlace(current.players, p);
+        const keptPrev =
+          p.lives > 0
+            ? p.hand.filter((c) => canKeepPurple || c.category !== 'purple')
+            : [];
+        return {
+          ...p,
+          previousHand: keptPrev,
+          hand: [],
+          needsDraft: p.lives > 0,
+          silencedBy: null,
+          desquicioBy: null,
+          sabotagedBy: null,
+          cursedRiskBy: null,
+        };
+      });
 
       const nextStarterIdx = getNextAlivePlayerIndex(
         resetPlayers,
@@ -802,10 +821,7 @@ export default function App() {
     const currentPlayer = g.players[g.currentPlayerIndex];
 
     const excludeIds = (currentPlayer.previousHand || []).map((c) => c.id);
-    const maxAliveLives = Math.max(
-      ...g.players.filter((p) => p.lives > 0).map((p) => p.lives)
-    );
-    const allowPurple = currentPlayer.lives < maxAliveLives;
+    const allowPurple = isPlayerInLastPlace(g.players, currentPlayer);
     const draftCards = currentPlayer.needsDraft
       ? generateDraftCards(5, excludeIds, allowPurple)
       : [];
