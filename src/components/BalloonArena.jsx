@@ -8,6 +8,7 @@ export default function BalloonArena({
   holdProgress,
   isHolding,
   isExploding,
+  isShieldSaving,
   disabled,
   pendingEndEffects,
   freezeNextImpulse,
@@ -20,20 +21,22 @@ export default function BalloonArena({
 }) {
   const [balloonEmoji, setBalloonEmoji] = useState('🎈');
 
-  const isShaking = riskPercent > 35 && !isExploding;
+  const isShaking = riskPercent >= 15 && !isExploding && !isShieldSaving;
 
   // Escala dinámica entre 1.0 (0.5%) y 1.65 (99%) más un ligero pulso al mantener presionado
   const baseScale = 1 + Math.min(riskPercent, 99) * 0.0062;
   const holdBonusScale = isHolding ? (holdProgress / 100) * 0.14 : 0;
   const totalScale = isExploding
     ? 1.5
+    : isShieldSaving
+    ? 1.25
     : Number((baseScale + holdBonusScale).toFixed(3));
 
   const totalTurnImpulses = impulsesCompleted + impulsesRemaining;
 
   const getRiskColorClass = () => {
-    if (riskPercent >= 50) return 'text-red-600';
-    if (riskPercent >= 25) return 'text-amber-600';
+    if (riskPercent >= 25) return 'text-red-600';
+    if (riskPercent >= 12) return 'text-amber-600';
     return 'text-emerald-600';
   };
 
@@ -180,13 +183,18 @@ export default function BalloonArena({
 
       {/* Zona Central del Globo Interactivo */}
       <div className="flex-1 flex flex-col items-center justify-center w-full relative my-2">
-        {riskPercent > 35 && !isExploding && (
-          <div className="absolute w-52 h-52 md:w-64 md:h-64 rounded-full bg-red-500/30 blur-2xl animate-pulse pointer-events-none" />
+        {isShieldSaving ? (
+          <div className="absolute w-56 h-56 md:w-72 md:h-72 rounded-full bg-emerald-400/45 blur-2xl animate-pulse pointer-events-none" />
+        ) : (
+          riskPercent >= 15 &&
+          !isExploding && (
+            <div className="absolute w-52 h-52 md:w-64 md:h-64 rounded-full bg-red-500/30 blur-2xl animate-pulse pointer-events-none" />
+          )
         )}
 
         <button
           type="button"
-          disabled={disabled || isExploding}
+          disabled={disabled || isExploding || isShieldSaving}
           onMouseDown={(e) => {
             if (e.button !== 0) return;
             onStartHold();
@@ -205,7 +213,9 @@ export default function BalloonArena({
           onContextMenu={(e) => e.preventDefault()}
           style={{ transform: `scale(${totalScale})` }}
           className={`relative select-none touch-none focus:outline-none transition-transform duration-150 flex flex-col items-center justify-center rounded-full p-6 cursor-pointer disabled:cursor-not-allowed ${
-            isHolding
+            isShieldSaving
+              ? 'drop-shadow-[0_0_40px_rgba(16,185,129,0.9)]'
+              : isHolding
               ? 'drop-shadow-[0_0_35px_rgba(255,255,255,0.85)]'
               : 'drop-shadow-[0_14px_20px_rgba(0,0,0,0.22)]'
           }`}
@@ -214,18 +224,28 @@ export default function BalloonArena({
             className={`text-8xl md:text-9xl leading-none block ${
               isExploding
                 ? 'animate-explosion-pop'
+                : isShieldSaving
+                ? 'animate-bounce'
                 : isShaking
                 ? 'animate-shake-hard'
                 : ''
             }`}
           >
-            {isExploding ? '💥' : balloonEmoji}
+            {isExploding ? '💥' : isShieldSaving ? '🛡️' : balloonEmoji}
           </span>
         </button>
 
-        <p className="mt-4 text-xs md:text-sm font-black uppercase tracking-wide text-cyan-950 bg-white/85 border-2 border-white px-4 py-1.5 rounded-full shadow-md">
+        <p
+          className={`mt-4 text-xs md:text-sm font-black uppercase tracking-wide px-4 py-1.5 rounded-full shadow-md border-2 ${
+            isShieldSaving
+              ? 'bg-emerald-500 text-white border-emerald-200 animate-pulse'
+              : 'text-cyan-950 bg-white/85 border-white'
+          }`}
+        >
           {isExploding
             ? '💥 ¡EL GLOBO EXPLOTÓ!'
+            : isShieldSaving
+            ? '🛡️ ¡ESCUDO BLOQUEÓ LA EXPLOSIÓN! PASA AL SIGUIENTE...'
             : isHolding
             ? '💨 ¡Mantén presionado para completar!'
             : '👆 Mantén presionado (0.8s = 1 impulso)'}

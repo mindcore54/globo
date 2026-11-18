@@ -393,3 +393,59 @@ export function playDefeatSound() {
     osc.stop(startTime + n.dur + 0.03);
   });
 }
+
+/**
+ * Sonido de Escudo de Goma bloqueando una explosión: rebote elástico + acorde protector brillante.
+ */
+export function playShieldDefendSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  stopInflateSound();
+
+  const now = ctx.currentTime;
+
+  // 1. Rebote elástico que absorbe el impacto del estallido
+  const bounceOsc = ctx.createOscillator();
+  const bounceGain = ctx.createGain();
+  bounceOsc.type = 'triangle';
+  bounceOsc.frequency.setValueAtTime(130, now);
+  bounceOsc.frequency.exponentialRampToValueAtTime(280, now + 0.09);
+  bounceOsc.frequency.exponentialRampToValueAtTime(115, now + 0.24);
+
+  bounceGain.gain.setValueAtTime(0.001, now);
+  bounceGain.gain.linearRampToValueAtTime(0.32, now + 0.02);
+  bounceGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+  bounceOsc.connect(bounceGain);
+  bounceGain.connect(ctx.destination);
+  bounceOsc.start(now);
+  bounceOsc.stop(now + 0.28);
+
+  // 2. Acorde protector metálico/energético ascendente (G4, D5, G5, D6)
+  const shieldNotes = [392.0, 587.33, 783.99, 1174.66];
+  shieldNotes.forEach((freq, idx) => {
+    const start = now + 0.05 + idx * 0.045;
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq * 1.4, start);
+    filter.Q.setValueAtTime(1.5, start);
+
+    gain.gain.setValueAtTime(0.001, start);
+    gain.gain.linearRampToValueAtTime(0.22, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(start);
+    osc.stop(start + 0.48);
+  });
+}

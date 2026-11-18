@@ -11,6 +11,7 @@ import {
   playExplosionSound,
   playCardSound,
   playDefeatSound,
+  playShieldDefendSound,
 } from './utils/soundEffects';
 import SetupScreen from './components/SetupScreen';
 import PinLockModal from './components/PinLockModal';
@@ -105,6 +106,7 @@ export default function App() {
   const holdStartRef = useRef(0);
   const rafRef = useRef(null);
   const explosionTimerRef = useRef(null);
+  const shieldTimerRef = useRef(null);
 
   const commitGame = useCallback((nextGame) => {
     gameRef.current = nextGame;
@@ -127,6 +129,9 @@ export default function App() {
       stopHold();
       if (explosionTimerRef.current) {
         clearTimeout(explosionTimerRef.current);
+      }
+      if (shieldTimerRef.current) {
+        clearTimeout(shieldTimerRef.current);
       }
     };
   }, [stopHold]);
@@ -171,6 +176,7 @@ export default function App() {
         heavyAirActive: false,
         pendingEndEffects: createInitialPendingEffects(),
         isExploding: false,
+        isShieldSaving: false,
         defeatedInfo: null,
         winner: null,
         logs: [
@@ -193,9 +199,11 @@ export default function App() {
    * Cierra el turno con éxito al llegar a 0 impulsos (o por Escudo de Goma / cartas verdes).
    */
   const closeTurnSuccess = useCallback(
-    (g, extraLogs = []) => {
+    (g, extraLogs = [], skipSound = false) => {
       stopHold();
-      playSuccessSound();
+      if (!skipSound) {
+        playSuccessSound();
+      }
 
       const currentPlayer = g.players[g.currentPlayerIndex];
       const newLogs = [...extraLogs];
@@ -353,6 +361,7 @@ export default function App() {
         heavyAirActive: false,
         pendingEndEffects: createInitialPendingEffects(),
         isExploding: false,
+        isShieldSaving: false,
         defeatedInfo: null,
         logs: [
           makeLog(
@@ -381,6 +390,7 @@ export default function App() {
       commitGame({
         ...current,
         isExploding: false,
+        isShieldSaving: false,
         defeatedInfo: null,
         winner,
       });
@@ -499,20 +509,43 @@ export default function App() {
 
     if (exploded) {
       if (g.shieldActive) {
+        stopHold();
+        playShieldDefendSound();
+
         const shieldLog = makeLog(
-          `🛡️ ¡Escudo de Goma! ${currentPlayer.avatar} ${currentPlayer.name} evitó la explosión (${g.riskPercent.toFixed(
+          `🛡️ ¡Escudo de Goma bloqueó la explosión en ${g.riskPercent.toFixed(
             1
-          )}%) y cierra su turno.`,
+          )}%! ${currentPlayer.avatar} ${currentPlayer.name} conserva su vida y pasa el turno.`,
           'success'
         );
-        closeTurnSuccess(
-          {
-            ...g,
-            impulsesRemaining: 0,
-            shieldActive: false,
-          },
-          [shieldLog]
-        );
+
+        commitGame({
+          ...g,
+          isShieldSaving: true,
+          impulsesRemaining: 0,
+          shieldActive: false,
+          logs: [shieldLog, ...g.logs].slice(0, 60),
+        });
+
+        if (shieldTimerRef.current) {
+          clearTimeout(shieldTimerRef.current);
+        }
+
+        shieldTimerRef.current = setTimeout(() => {
+          const current = gameRef.current;
+          if (!current) return;
+          closeTurnSuccess(
+            {
+              ...current,
+              isShieldSaving: false,
+              impulsesRemaining: 0,
+              shieldActive: false,
+            },
+            [],
+            true
+          );
+        }, 1150);
+
         return false;
       }
 
@@ -580,6 +613,7 @@ export default function App() {
       g.isLocked ||
       g.draftCards.length > 0 ||
       g.isExploding ||
+      g.isShieldSaving ||
       g.impulsesRemaining <= 0 ||
       pendingTargetSelection
     ) {
@@ -982,7 +1016,13 @@ export default function App() {
           holdProgress={holdProgress}
           isHolding={isHolding}
           isExploding={game.isExploding}
-          disabled={isPrivateHidden || Boolean(pendingTargetSelection)}
+          isShieldSaving={game.isShieldSaving}
+          disabled={
+            isPrivateHidden ||
+            Boolean(pendingTargetSelection) ||
+            Boolean(game.defeatedInfo) ||
+            game.isShieldSaving
+          }
           pendingEndEffects={game.pendingEndEffects}
           freezeNextImpulse={game.freezeNextImpulse}
           shieldActive={game.shieldActive}
@@ -1007,7 +1047,7 @@ export default function App() {
         otherAlivePlayersWithCardsCount={otherAliveWithCards.length}
         otherAlivePlayersCount={otherAlivePlayers.length}
         isHolding={isHolding}
-        isExploding={game.isExploding}
+        isExploding={game.isExploding || game.isShieldSaving}
         onToggleGreedyPump={handleToggleGreedyPump}
         onPlayCard={handlePlayCard}
       />
@@ -1023,7 +1063,10 @@ export default function App() {
         />
       )}
 
-      {game.isLocked && !game.isExploding && !game.defeatedInfo && (
+      {game.isLocked &&
+        !game.isExploding &&
+        !game.isShieldSaving &&
+        !game.defeatedInfo && (
         <PinLockModal
           player={currentPlayer}
           roundNumber={game.roundNumber}
