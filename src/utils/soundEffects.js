@@ -449,3 +449,37 @@ export function playShieldDefendSound() {
     osc.stop(start + 0.48);
   });
 }
+
+/**
+ * Dos tonos cortos de advertencia cuando el jugador anterior te dejó una trampa.
+ */
+export function playTrapAlertSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const tones = [
+    { start: 0, freq: 440, endFreq: 360, dur: 0.13 },
+    { start: 0.15, freq: 390, endFreq: 280, dur: 0.2 },
+  ];
+
+  tones.forEach((t) => {
+    const startTime = now + t.start;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(t.freq, startTime);
+    osc.frequency.exponentialRampToValueAtTime(t.endFreq, startTime + t.dur);
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + t.dur);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + t.dur + 0.02);
+  });
+}

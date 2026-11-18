@@ -12,6 +12,7 @@ import {
   playCardSound,
   playDefeatSound,
   playShieldDefendSound,
+  playTrapAlertSound,
 } from './utils/soundEffects';
 import SetupScreen from './components/SetupScreen';
 import PinLockModal from './components/PinLockModal';
@@ -107,6 +108,7 @@ export default function App() {
   const rafRef = useRef(null);
   const explosionTimerRef = useRef(null);
   const shieldTimerRef = useRef(null);
+  const trapTimerRef = useRef(null);
 
   const commitGame = useCallback((nextGame) => {
     gameRef.current = nextGame;
@@ -133,6 +135,9 @@ export default function App() {
       if (shieldTimerRef.current) {
         clearTimeout(shieldTimerRef.current);
       }
+      if (trapTimerRef.current) {
+        clearTimeout(trapTimerRef.current);
+      }
     };
   }, [stopHold]);
 
@@ -141,6 +146,10 @@ export default function App() {
    */
   const handleStartGame = useCallback(
     (rawPlayers) => {
+      if (trapTimerRef.current) {
+        clearTimeout(trapTimerRef.current);
+        trapTimerRef.current = null;
+      }
       stopHold();
       setPendingTargetSelection(null);
       setSavedRoster(rawPlayers);
@@ -178,6 +187,8 @@ export default function App() {
         isExploding: false,
         isShieldSaving: false,
         defeatedInfo: null,
+        pendingTrapNotice: null,
+        activeTrapNotice: null,
         winner: null,
         logs: [
           makeLog(
@@ -285,10 +296,71 @@ export default function App() {
         );
       }
 
-      // 4. Preparar impulsos y estado del siguiente jugador
+      // 4. Preparar impulsos, trampas entrantes y estado del siguiente jugador
       const baseImpulses = pending.doubleTurn ? 6 : 3;
       const nextImpulses = baseImpulses + (pending.extraBlows || 0);
       const nextPlayer = updatedPlayers[nextPlayerIndex];
+
+      const nextIncomingTraps = [];
+      if (pending.doubleTurn) {
+        nextIncomingTraps.push({
+          id: 'c7',
+          emoji: '😈',
+          name: 'Doble Turno',
+          detail: 'Tus impulsos base subieron a 6',
+        });
+      }
+      if (pending.extraBlows > 0) {
+        nextIncomingTraps.push({
+          id: 'c6',
+          emoji: '🌬️',
+          name: 'Soplido Extra',
+          detail: `+${pending.extraBlows} impulso(s) adicional(es)`,
+        });
+      }
+      if (pending.pinCount > 0) {
+        nextIncomingTraps.push({
+          id: 'c8',
+          emoji: '📌',
+          name: 'Alfiler',
+          detail: `Subió +${pending.pinCount * 10}% el riesgo del globo`,
+        });
+      }
+      if (pending.heavyAirNext) {
+        nextIncomingTraps.push({
+          id: 'c9',
+          emoji: '⚠️',
+          name: 'Aire Pesado',
+          detail: 'Cada impulso sube el doble de riesgo',
+        });
+      }
+      if (pending.sniperTargetId && nextPlayer.id === pending.sniperTargetId) {
+        nextIncomingTraps.push({
+          id: 'c11',
+          emoji: '🎯',
+          name: 'Francotirador',
+          detail: 'Te apuntó directo para saltar a tu turno',
+        });
+      }
+      if (pending.reverseCount % 2 === 1) {
+        nextIncomingTraps.push({
+          id: 'c12',
+          emoji: '🔄',
+          name: 'Reversa',
+          detail: 'Invirtió el giro hacia tu turno',
+        });
+      }
+
+      const pendingTrapNotice =
+        nextIncomingTraps.length > 0
+          ? {
+              fromPlayer: {
+                name: currentPlayer.name,
+                avatar: currentPlayer.avatar,
+              },
+              traps: nextIncomingTraps,
+            }
+          : null;
 
       newLogs.unshift(
         makeLog(
@@ -313,6 +385,8 @@ export default function App() {
         shieldActive: false,
         heavyAirActive: Boolean(pending.heavyAirNext),
         pendingEndEffects: createInitialPendingEffects(),
+        pendingTrapNotice,
+        activeTrapNotice: null,
         logs: [...newLogs, ...g.logs].slice(0, 60),
       };
 
@@ -363,6 +437,8 @@ export default function App() {
         isExploding: false,
         isShieldSaving: false,
         defeatedInfo: null,
+        pendingTrapNotice: null,
+        activeTrapNotice: null,
         logs: [
           makeLog(
             `🔄 ¡Ronda #${nextRound}! Globo en 0.5%. Giro ${
@@ -392,6 +468,8 @@ export default function App() {
         isExploding: false,
         isShieldSaving: false,
         defeatedInfo: null,
+        pendingTrapNotice: null,
+        activeTrapNotice: null,
         winner,
       });
       setPhase('victory');
@@ -444,6 +522,8 @@ export default function App() {
         shieldActive: false,
         heavyAirActive: false,
         pendingEndEffects: createInitialPendingEffects(),
+        pendingTrapNotice: null,
+        activeTrapNotice: null,
         logs: [...explosionLogs, ...g.logs].slice(0, 60),
       };
 
@@ -651,6 +731,19 @@ export default function App() {
     rafRef.current = requestAnimationFrame(tick);
   }, [evaluateCompletedImpulse, pendingTargetSelection]);
 
+  const dismissTrapNotice = useCallback(() => {
+    if (trapTimerRef.current) {
+      clearTimeout(trapTimerRef.current);
+      trapTimerRef.current = null;
+    }
+    const g = gameRef.current;
+    if (!g || !g.activeTrapNotice) return;
+    commitGame({
+      ...g,
+      activeTrapNotice: null,
+    });
+  }, [commitGame]);
+
   const handleUnlockTurn = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
@@ -661,10 +754,31 @@ export default function App() {
       ? generateDraftCards(5, excludeIds)
       : [];
 
+    const trapToShow = g.pendingTrapNotice;
+
+    if (trapTimerRef.current) {
+      clearTimeout(trapTimerRef.current);
+      trapTimerRef.current = null;
+    }
+
+    if (trapToShow) {
+      playTrapAlertSound();
+      trapTimerRef.current = setTimeout(() => {
+        const current = gameRef.current;
+        if (!current || !current.activeTrapNotice) return;
+        commitGame({
+          ...current,
+          activeTrapNotice: null,
+        });
+      }, 2600);
+    }
+
     commitGame({
       ...g,
       isLocked: false,
       draftCards,
+      pendingTrapNotice: null,
+      activeTrapNotice: trapToShow || null,
     });
   }, [commitGame]);
 
@@ -1021,6 +1135,7 @@ export default function App() {
             isPrivateHidden ||
             Boolean(pendingTargetSelection) ||
             Boolean(game.defeatedInfo) ||
+            Boolean(game.activeTrapNotice) ||
             game.isShieldSaving
           }
           pendingEndEffects={game.pendingEndEffects}
@@ -1090,6 +1205,55 @@ export default function App() {
           onSelectTarget={handleSelectTarget}
           onCancel={() => setPendingTargetSelection(null)}
         />
+      )}
+
+      {/* Aviso temporal de trampa recibida del jugador anterior al desbloquear PIN */}
+      {game.activeTrapNotice && (
+        <div
+          onClick={dismissTrapNotice}
+          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div className="w-full max-w-md bg-white border-4 border-rose-500 rounded-[2rem] p-6 shadow-2xl flex flex-col items-center text-center gap-4">
+            <div className="text-xs font-black uppercase tracking-widest bg-rose-100 text-rose-700 border-2 border-rose-300 px-3.5 py-1 rounded-full animate-pulse">
+              ⚠️ ¡Alerta de Trampa!
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-5xl">{game.activeTrapNotice.fromPlayer.avatar}</span>
+              <div className="text-left">
+                <h3 className="text-lg md:text-xl font-black text-rose-600 uppercase leading-tight">
+                  ¡{game.activeTrapNotice.fromPlayer.name} te jugó una carta!
+                </h3>
+                <p className="text-xs font-bold text-slate-500">
+                  Efectos activos para este turno:
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full flex flex-col gap-2">
+              {game.activeTrapNotice.traps.map((trap) => (
+                <div
+                  key={trap.id}
+                  className="flex items-center gap-3 bg-rose-50 border-2 border-rose-300 rounded-2xl px-3.5 py-2.5 text-left"
+                >
+                  <span className="text-3xl leading-none">{trap.emoji}</span>
+                  <div>
+                    <div className="font-black text-sm text-rose-900 uppercase">
+                      {trap.name}
+                    </div>
+                    <div className="text-xs font-semibold text-rose-800/80">
+                      {trap.detail}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <span className="text-[11px] font-bold text-slate-400 uppercase">
+              Toca para cerrar o espera un instante...
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );
