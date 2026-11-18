@@ -12,43 +12,43 @@ export default function HistorySidebar({ logs }) {
   const getLogStyle = (type) => {
     switch (type) {
       case 'danger':
-        return 'bg-rose-500/15 border-rose-500/40 text-rose-200';
+        return 'bg-rose-100/95 border-rose-400 text-rose-950';
       case 'success':
-        return 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200';
+        return 'bg-emerald-100/95 border-emerald-400 text-emerald-950';
       case 'card':
-        return 'bg-amber-500/15 border-amber-500/40 text-amber-100';
+        return 'bg-amber-100/95 border-amber-400 text-amber-950';
       case 'round':
-        return 'bg-indigo-500/20 border-indigo-400/40 text-indigo-100 font-semibold';
+        return 'bg-cyan-100/95 border-cyan-500 text-cyan-950 font-black';
       default:
-        return 'bg-slate-800/70 border-slate-700/70 text-slate-200';
+        return 'bg-white/85 border-white text-slate-800';
     }
   };
 
   return (
-    <aside className="w-full md:w-72 lg:w-80 bg-slate-900/95 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0 max-h-36 md:max-h-none">
-      <div className="px-3.5 py-2 border-b border-slate-800 flex items-center justify-between shrink-0">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+    <aside className="w-full md:w-72 lg:w-80 bg-white/50 backdrop-blur-xl border-t-4 md:border-t-0 md:border-l-4 border-white/60 flex flex-col shrink-0 max-h-36 md:max-h-none shadow-inner">
+      <div className="px-3.5 py-2 border-b-2 border-white/60 flex items-center justify-between shrink-0">
+        <h3 className="text-xs font-black uppercase tracking-widest text-cyan-950 flex items-center gap-1.5">
           <span>📜</span>
           <span>Bitácora Pública</span>
         </h3>
-        <span className="text-[11px] font-semibold text-slate-500">
+        <span className="text-[10px] font-black uppercase bg-white/80 text-cyan-900 px-2 py-0.5 rounded-full border border-white">
           En vivo
         </span>
       </div>
 
       <div
         ref={listRef}
-        className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-1.5"
+        className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-1.5 custom-scrollbar"
       >
         {logs.length === 0 ? (
-          <div className="text-xs text-slate-500 text-center py-6">
+          <div className="text-xs font-bold text-cyan-950/60 text-center py-6">
             Sin eventos todavía.
           </div>
         ) : (
           logs.map((entry) => (
             <div
               key={entry.id}
-              className={`text-xs rounded-xl px-2.5 py-2 border leading-snug ${getLogStyle(
+              className={`text-xs rounded-2xl px-3 py-2 border-2 leading-snug shadow-sm font-semibold ${getLogStyle(
                 entry.type
               )}`}
             >

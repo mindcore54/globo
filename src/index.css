@@ -14,6 +14,15 @@
   }
 }
 
+@keyframes stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -120px 120px;
+  }
+}
+
 @keyframes shake-hard {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   20% { transform: translate(-4px, 3px) rotate(-2deg); }
@@ -28,6 +37,22 @@
   100% { transform: scale(2.2); opacity: 0; }
 }
 
+.bg-moving-stripes {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 120px 120px;
+  animation: stripes 4s linear infinite;
+  will-change: background-position;
+}
+
 .animate-shake-hard {
   animation: shake-hard 0.22s infinite linear;
 }
@@ -36,19 +61,21 @@
   animation: explosion-pop 0.8s ease-out forwards;
 }
 
-/* Estilizado sutil de scrollbar para bitácora y mano */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.4);
-  border-radius: 9999px;
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
-  border-radius: 9999px;
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(8, 145, 178, 0.45);
+  border-radius: 6px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 145, 178, 0.7);
 }

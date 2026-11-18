@@ -876,8 +876,20 @@ export default function App() {
       : otherAlivePlayers
     : [];
 
+  const pastelColors = [
+    'bg-cyan-400',
+    'bg-teal-300',
+    'bg-pink-300',
+    'bg-violet-300',
+    'bg-orange-300',
+    'bg-slate-400',
+  ];
+  const currentBgColor = pastelColors[(game.roundNumber - 1) % pastelColors.length];
+
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col justify-between bg-slate-950 text-slate-100">
+    <div
+      className={`h-screen w-screen overflow-hidden flex flex-col justify-between font-sans text-slate-900 selection:bg-white/40 transition-colors duration-1000 ease-in-out ${currentBgColor} bg-moving-stripes`}
+    >
       {/* 1. Header / Barra de Jugadores (Pública) */}
       <HeaderPlayers
         players={game.players}

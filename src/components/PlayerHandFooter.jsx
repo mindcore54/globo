@@ -43,30 +43,32 @@ export default function PlayerHandFooter({
   };
 
   return (
-    <footer className="w-full bg-slate-900 border-t border-slate-800 px-3 py-2.5 flex flex-col gap-2 shrink-0">
+    <footer className="w-full bg-white/35 backdrop-blur-xl border-t-4 border-white/60 px-3 py-2.5 flex flex-col gap-2 shrink-0">
       {/* Barra superior del footer: Identidad, Bombeo Codicioso y Contador de Cartas */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{player.avatar}</span>
-          <span className="text-sm font-extrabold text-white">
-            Mano de {player.name}
-          </span>
-          <span className="text-xs font-bold bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-0.5 rounded-full">
+          <div className="bg-white/85 border-2 border-white rounded-full px-3 py-1 flex items-center gap-2 shadow-sm">
+            <span className="text-xl leading-none">{player.avatar}</span>
+            <span className="text-xs md:text-sm font-black uppercase text-cyan-950">
+              Mano de {player.name}
+            </span>
+          </div>
+          <span className="text-xs font-black bg-cyan-900 text-white px-3 py-1 rounded-full shadow-sm">
             Cartas usadas este turno: {cardsUsedThisTurn}/2
           </span>
         </div>
 
-        {/* Botón Toggle Bombeo Codicioso */}
+        {/* Botón Toggle Bombeo Codicioso estilo arcade 3D */}
         <button
           type="button"
           disabled={!canActivateGreedy}
           onClick={onToggleGreedyPump}
-          className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs md:text-sm border-2 transition active:scale-95 flex items-center gap-1.5 ${
+          className={`px-4 py-1.5 rounded-xl font-black text-xs md:text-sm border-2 transition flex items-center gap-1.5 ${
             greedyPumpActive
-              ? 'bg-orange-500/25 border-orange-400 text-orange-200 cursor-default'
+              ? 'bg-orange-400 border-orange-200 text-orange-950 shadow-sm cursor-default'
               : canActivateGreedy
-              ? 'bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-400 hover:to-rose-400 border-orange-300 text-white shadow-lg shadow-orange-500/20'
-              : 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+              ? 'bg-yellow-400 hover:bg-yellow-300 border-yellow-300 text-yellow-950 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none'
+              : 'bg-white/45 border-white/60 text-cyan-950/45 cursor-not-allowed'
           }`}
         >
           <span>🔥</span>
@@ -82,15 +84,15 @@ export default function PlayerHandFooter({
 
       {/* Contenedor horizontal de cartas en mano */}
       {isPrivateHidden ? (
-        <div className="h-28 flex items-center justify-center bg-slate-950/70 border border-slate-800 rounded-2xl text-sm text-slate-400 font-semibold">
+        <div className="h-28 flex items-center justify-center bg-white/45 border-2 border-white/70 rounded-2xl text-sm text-cyan-950 font-black">
           🔒 Cartas ocultas hasta que {player.name} ingrese su PIN
         </div>
       ) : player.hand.length === 0 ? (
-        <div className="h-28 flex items-center justify-center bg-slate-950/50 border border-dashed border-slate-800 rounded-2xl text-sm text-slate-500 font-medium">
+        <div className="h-28 flex items-center justify-center bg-white/40 border-2 border-dashed border-white/80 rounded-2xl text-sm text-cyan-950/75 font-bold">
           No tienes cartas en la mano. ¡Infla el globo o activa el Bombeo Codicioso!
         </div>
       ) : (
-        <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1">
+        <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 custom-scrollbar">
           {player.hand.map((card) => {
             const disabled = isCardDisabled(card);
             const isMirrorBlocked = card.id === 'c14' && !ultimaCartaJugada;
@@ -101,17 +103,17 @@ export default function PlayerHandFooter({
                 type="button"
                 disabled={disabled}
                 onClick={() => onPlayCard(card)}
-                className={`shrink-0 w-40 md:w-44 rounded-2xl border-2 p-2.5 flex flex-col justify-between text-left transition-all ${
+                className={`shrink-0 w-40 md:w-44 rounded-2xl border-[3px] p-2.5 flex flex-col justify-between text-left transition-all shadow-[0_4px_0_rgba(0,0,0,0.14)] ${
                   card.tailwindClasses
                 } ${
                   disabled
-                    ? 'opacity-45 cursor-not-allowed grayscale-[30%]'
-                    : 'hover:-translate-y-0.5 hover:shadow-lg active:scale-95 cursor-pointer'
+                    ? 'opacity-45 cursor-not-allowed grayscale-[30%] shadow-none'
+                    : 'hover:-translate-y-0.5 hover:shadow-[0_6px_0_rgba(0,0,0,0.18)] active:translate-y-[2px] active:shadow-none cursor-pointer'
                 }`}
               >
                 <div className="flex items-start justify-between gap-1">
                   <span className="text-2xl leading-none">{card.emoji}</span>
-                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-black/10">
+                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-lg bg-black/10">
                     {isMirrorBlocked
                       ? 'Sin carta previa'
                       : card.category === 'green'
@@ -123,10 +125,10 @@ export default function PlayerHandFooter({
                 </div>
 
                 <div className="mt-1">
-                  <div className="font-extrabold text-xs md:text-sm leading-tight">
+                  <div className="font-black text-xs md:text-sm leading-tight">
                     {card.name}
                   </div>
-                  <p className="text-[11px] opacity-85 leading-tight mt-0.5 line-clamp-2">
+                  <p className="text-[11px] font-medium opacity-90 leading-tight mt-0.5 line-clamp-2">
                     {card.id === 'c14' && ultimaCartaJugada
                       ? `Copia: ${ultimaCartaJugada.emoji} ${ultimaCartaJugada.name}`
                       : card.description}

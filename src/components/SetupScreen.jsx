@@ -60,7 +60,6 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
     setPin('');
     setError('');
 
-    // Sugerir el siguiente avatar no usado si existe
     const usedAvatars = new Set(nextPlayers.map((p) => p.avatar));
     const nextAvailable = AVATARS.find((av) => !usedAvatars.has(av));
     if (nextAvailable) {
@@ -75,44 +74,46 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const canStart = players.length >= 2 && players.length <= 8;
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 md:p-6 overflow-y-auto">
-      <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5 md:p-7 flex flex-col gap-5">
-        {/* Encabezado */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+    <div className="min-h-screen w-full bg-cyan-400 bg-moving-stripes text-slate-900 flex flex-col items-center justify-center p-4 md:p-6 overflow-y-auto font-sans">
+      <div className="w-full max-w-5xl bg-white/30 backdrop-blur-xl border-4 border-white/50 rounded-[2rem] md:rounded-[3rem] shadow-2xl shadow-cyan-900/20 p-5 md:p-8 flex flex-col gap-5">
+        {/* Encabezado estilo arcade */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="text-4xl md:text-5xl">🎈</span>
+            <span className="text-4xl md:text-5xl drop-shadow">🎈</span>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-                Globo Boom — Pass &amp; Play
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.22)] uppercase">
+                ¡Globo Boom!
               </h1>
-              <p className="text-sm text-slate-400">
-                Configura de 2 a 8 jugadores con su PIN secreto para proteger sus cartas.
+              <p className="text-xs md:text-sm font-bold text-cyan-950/80 uppercase tracking-wide">
+                Pass &amp; Play · De 2 a 8 jugadores con PIN secreto
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-2xl text-sm">
-            <span className="text-slate-300 font-medium">Vidas por jugador:</span>
+          <div className="flex items-center gap-2 bg-white/75 border-2 border-white px-4 py-2 rounded-2xl shadow-sm self-start md:self-auto">
+            <span className="text-xs font-black uppercase tracking-wider text-cyan-900">
+              Vidas:
+            </span>
             <span className="text-lg tracking-wider">
               {Array.from({ length: livesPerPlayer }).map((_, i) => (
                 <span key={i}>❤️</span>
               ))}
             </span>
-            <span className="text-xs text-slate-400 ml-1">
+            <span className="text-xs font-bold text-cyan-800/70">
               ({players.length >= 4 ? '4+ jug.' : '2-3 jug.'})
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Formulario de registro + Teclado PIN */}
-          <div className="lg:col-span-7 bg-slate-950/60 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col gap-4">
+          <div className="lg:col-span-7 bg-white/45 border-2 border-white/70 rounded-3xl p-4 md:p-5 flex flex-col gap-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-amber-300">
+              <h2 className="text-base md:text-lg font-black uppercase tracking-wide text-cyan-950">
                 Nuevo Jugador ({players.length}/8)
               </h2>
               {players.length >= 8 && (
-                <span className="text-xs font-semibold bg-rose-500/20 text-rose-300 px-2.5 py-1 rounded-full">
+                <span className="text-xs font-black uppercase bg-red-500 text-white px-3 py-1 rounded-full shadow">
                   Cupo lleno
                 </span>
               )}
@@ -120,7 +121,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
 
             {/* Nombre */}
             <div>
-              <label className="block text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-cyan-950/80 font-black mb-1">
                 Nombre del jugador
               </label>
               <input
@@ -131,15 +132,15 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                   setError('');
                   setName(e.target.value);
                 }}
-                placeholder="Ej. Carlos, Ana..."
+                placeholder="EJ. CARLOS, ANA..."
                 disabled={players.length >= 8}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 focus:outline-none rounded-xl px-4 py-2.5 text-base font-semibold text-white placeholder-slate-500"
+                className="w-full bg-white/85 border-2 border-white focus:border-cyan-600 focus:outline-none rounded-xl px-4 py-2.5 text-base font-black text-cyan-950 placeholder:text-cyan-900/35 shadow-sm transition"
               />
             </div>
 
             {/* Selector de Avatar */}
             <div>
-              <label className="block text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
+              <label className="block text-xs uppercase tracking-wider text-cyan-950/80 font-black mb-1.5">
                 Elige tu Avatar
               </label>
               <div className="grid grid-cols-6 gap-2">
@@ -151,10 +152,10 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                       type="button"
                       disabled={players.length >= 8}
                       onClick={() => setSelectedAvatar(avatar)}
-                      className={`text-2xl md:text-3xl py-2 rounded-xl border-2 transition-all active:scale-95 ${
+                      className={`text-2xl md:text-3xl py-2 rounded-2xl border-2 transition-all active:scale-95 ${
                         isSelected
-                          ? 'bg-amber-500/20 border-amber-400 scale-105 shadow-lg shadow-amber-500/10'
-                          : 'bg-slate-900 border-slate-800 hover:border-slate-600'
+                          ? 'bg-yellow-300 border-yellow-500 scale-105 shadow-[0_3px_0_rgb(202,138,4)]'
+                          : 'bg-white/75 border-white hover:bg-white'
                       }`}
                     >
                       {avatar}
@@ -164,14 +165,14 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               </div>
             </div>
 
-            {/* PIN Secreto con teclado numérico */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center gap-4">
+            {/* PIN Secreto con teclado numérico (oculto con ●) */}
+            <div className="bg-white/60 border-2 border-white rounded-2xl p-3.5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 flex flex-col items-center sm:items-start">
-                <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                <span className="text-xs uppercase tracking-wider text-cyan-950 font-black">
                   PIN Secreto (4 dígitos)
                 </span>
-                <p className="text-xs text-slate-500 mb-2">
-                  Solo tú debes conocerlo al pasarse la tablet.
+                <p className="text-xs font-semibold text-cyan-900/70 mb-2">
+                  Se oculta al escribir para proteger tus cartas.
                 </p>
                 <div className="flex items-center gap-2.5 my-1">
                   {[0, 1, 2, 3].map((idx) => {
@@ -179,10 +180,10 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                     return (
                       <div
                         key={idx}
-                        className={`w-11 h-12 rounded-xl border-2 flex items-center justify-center text-xl font-bold transition-colors ${
+                        className={`w-11 h-12 rounded-xl border-2 flex items-center justify-center text-xl font-black transition-all ${
                           digit
-                            ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                            : 'bg-slate-950 border-slate-700 text-slate-600'
+                            ? 'bg-cyan-600 border-cyan-800 text-white shadow-inner scale-105'
+                            : 'bg-white/90 border-cyan-900/20 text-cyan-900/30'
                         }`}
                       >
                         {digit ? '●' : ''}
@@ -200,7 +201,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                     type="button"
                     disabled={players.length >= 8}
                     onClick={() => handleDigit(d)}
-                    className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-lg py-2 rounded-xl border border-slate-700 transition"
+                    className="bg-white hover:bg-cyan-50 active:translate-y-[2px] active:shadow-none text-cyan-950 font-black text-lg py-2 rounded-xl border-2 border-white shadow-[0_3px_0_rgba(8,145,178,0.28)] transition"
                   >
                     {d}
                   </button>
@@ -209,7 +210,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                   type="button"
                   disabled={players.length >= 8}
                   onClick={handleClearPin}
-                  className="bg-slate-800/70 hover:bg-slate-700 active:scale-95 text-slate-300 font-semibold text-xs py-2 rounded-xl border border-slate-700 transition"
+                  className="bg-white/80 hover:bg-white active:translate-y-[2px] active:shadow-none text-cyan-900 font-extrabold text-xs py-2 rounded-xl border-2 border-white shadow-[0_3px_0_rgba(8,145,178,0.2)] transition"
                 >
                   Limpiar
                 </button>
@@ -217,7 +218,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                   type="button"
                   disabled={players.length >= 8}
                   onClick={() => handleDigit('0')}
-                  className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-bold text-lg py-2 rounded-xl border border-slate-700 transition"
+                  className="bg-white hover:bg-cyan-50 active:translate-y-[2px] active:shadow-none text-cyan-950 font-black text-lg py-2 rounded-xl border-2 border-white shadow-[0_3px_0_rgba(8,145,178,0.28)] transition"
                 >
                   0
                 </button>
@@ -225,7 +226,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                   type="button"
                   disabled={players.length >= 8}
                   onClick={handleBackspace}
-                  className="bg-rose-950/60 hover:bg-rose-900/70 active:scale-95 text-rose-200 font-semibold text-sm py-2 rounded-xl border border-rose-800/60 transition"
+                  className="bg-red-400 hover:bg-red-500 active:translate-y-[2px] active:shadow-none text-white font-black text-sm py-2 rounded-xl border-2 border-red-300 shadow-[0_3px_0_#991b1b] transition"
                 >
                   ⌫
                 </button>
@@ -233,7 +234,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
             </div>
 
             {error && (
-              <div className="text-sm font-medium text-rose-300 bg-rose-500/15 border border-rose-500/40 rounded-xl px-3.5 py-2">
+              <div className="bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-center text-sm shadow">
                 {error}
               </div>
             )}
@@ -242,51 +243,51 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               type="button"
               disabled={players.length >= 8}
               onClick={handleAddPlayer}
-              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-base text-white shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition"
+              className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-45 disabled:cursor-not-allowed font-black text-base text-white uppercase tracking-wide border-2 border-cyan-400 shadow-[0_4px_0_#155e75] active:translate-y-[2px] active:shadow-none transition"
             >
-              ➕ Agregar Jugador ({selectedAvatar})
+              + Agregar Jugador ({selectedAvatar})
             </button>
           </div>
 
           {/* Lista de jugadores registrados y botón de Inicio */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-4 bg-slate-950/60 border border-slate-800 rounded-2xl p-4 md:p-5">
+          <div className="lg:col-span-5 flex flex-col justify-between gap-4 bg-white/45 border-2 border-white/70 rounded-3xl p-4 md:p-5 shadow-sm">
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-100">
+                <h2 className="text-base md:text-lg font-black uppercase tracking-wide text-cyan-950">
                   Jugadores en Mesa
                 </h2>
-                <span className="text-xs font-semibold text-slate-400">
+                <span className="text-xs font-black text-cyan-900/70 uppercase">
                   Mín. 2 · Máx. 8
                 </span>
               </div>
 
               {players.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl">
+                <div className="flex flex-col items-center justify-center py-12 text-center text-cyan-950/60 border-2 border-dashed border-white/70 bg-white/30 rounded-2xl">
                   <span className="text-4xl mb-2">👥</span>
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-bold">
                     Aún no hay jugadores registrados.
                   </p>
-                  <p className="text-xs mt-1">
+                  <p className="text-xs mt-1 font-semibold">
                     Agrega al menos 2 para comenzar.
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
                   {players.map((player, index) => (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5"
+                      className="flex items-center justify-between bg-white/75 border-2 border-white rounded-2xl px-3.5 py-2.5 shadow-sm"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-slate-500 w-4">
-                          #{index + 1}
-                        </span>
-                        <span className="text-2xl">{player.avatar}</span>
+                        <div className="bg-cyan-500 text-white font-black w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-inner shrink-0">
+                          {index + 1}
+                        </div>
+                        <span className="text-2xl leading-none">{player.avatar}</span>
                         <div>
-                          <div className="font-bold text-slate-100 leading-tight">
+                          <div className="font-black text-cyan-950 uppercase leading-tight">
                             {player.name}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-xs font-bold text-cyan-900/65">
                             PIN: •••• ·{' '}
                             {Array.from({ length: livesPerPlayer })
                               .map(() => '❤️')
@@ -297,9 +298,10 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                       <button
                         type="button"
                         onClick={() => handleRemovePlayer(player.id)}
-                        className="text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-950/50 hover:bg-rose-900/50 px-2.5 py-1.5 rounded-lg transition"
+                        className="w-8 h-8 flex items-center justify-center bg-red-400 hover:bg-red-500 text-white rounded-full font-black shadow transition-transform hover:scale-110 shrink-0"
+                        title="Quitar jugador"
                       >
-                        Quitar
+                        ✕
                       </button>
                     </div>
                   ))}
@@ -307,18 +309,18 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 pt-3 border-t border-slate-800">
-              <div className="text-xs text-slate-400 text-center">
-                Al iniciar, el orden en la mesa, quien empieza y el sentido de giro se sortean al azar.
+            <div className="flex flex-col gap-2.5 pt-3 border-t-2 border-white/50">
+              <div className="text-xs font-bold text-cyan-950/75 text-center">
+                El orden en la mesa, quien inicia y el giro se sortean al azar.
               </div>
               <button
                 type="button"
                 disabled={!canStart}
                 onClick={() => onStartGame(players)}
-                className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-extrabold text-lg shadow-xl shadow-emerald-500/20 active:scale-[0.99] transition"
+                className="w-full py-4 rounded-2xl bg-yellow-400 hover:bg-yellow-300 disabled:bg-white/40 disabled:text-cyan-950/40 disabled:border-white/40 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed text-yellow-900 font-black text-lg uppercase tracking-wide border-2 border-yellow-300 shadow-[0_5px_0_rgb(202,138,4)] hover:shadow-[0_2px_0_rgb(202,138,4)] hover:translate-y-[3px] transition-all"
               >
                 {canStart
-                  ? `🚀 Iniciar Partida (${players.length} Jugadores)`
+                  ? `¡JUGAR AHORA! (${players.length} Jugadores)`
                   : `Faltan ${Math.max(0, 2 - players.length)} jugador(es)`}
               </button>
             </div>

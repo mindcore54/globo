@@ -4,9 +4,9 @@ export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBack
   if (!winner) return null;
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-slate-900 border-2 border-amber-400/70 rounded-3xl p-8 shadow-2xl shadow-amber-500/10 flex flex-col items-center text-center gap-5">
-        <div className="text-xs font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-400/40 px-4 py-1.5 rounded-full">
+    <div className="min-h-screen w-full bg-cyan-400 bg-moving-stripes flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-lg bg-white border-4 border-yellow-400 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center gap-5">
+        <div className="text-xs font-black uppercase tracking-widest bg-yellow-300 text-yellow-950 border-2 border-yellow-400 px-4 py-1.5 rounded-full shadow-sm">
           🏆 ¡Victoria tras {roundNumber} Ronda(s)!
         </div>
 
@@ -15,10 +15,10 @@ export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBack
         </div>
 
         <div>
-          <h1 className="text-3xl md:text-4xl font-black text-white">
+          <h1 className="text-3xl md:text-4xl font-black text-cyan-950 uppercase">
             ¡{winner.name} Gana la Partida!
           </h1>
-          <p className="text-slate-400 mt-1 text-sm">
+          <p className="text-slate-600 font-bold mt-1.5 text-sm">
             Sobrevivió con {winner.lives} {winner.lives === 1 ? 'vida' : 'vidas'}{' '}
             {Array.from({ length: winner.lives })
               .map(() => '❤️')
@@ -26,18 +26,18 @@ export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBack
           </p>
         </div>
 
-        <div className="w-full flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-800">
+        <div className="w-full flex flex-col sm:flex-row gap-3 pt-4 border-t-2 border-slate-100">
           <button
             type="button"
             onClick={onPlayAgain}
-            className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-base shadow-lg active:scale-95 transition"
+            className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
           >
-            🔄 Revancha (Mismos Jugadores)
+            🔄 Revancha
           </button>
           <button
             type="button"
             onClick={onBackToSetup}
-            className="flex-1 py-3.5 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-base border border-slate-700 active:scale-95 transition"
+            className="flex-1 py-3.5 px-5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-black text-base uppercase border-2 border-cyan-400 shadow-[0_4px_0_#155e75] active:translate-y-[2px] active:shadow-none transition"
           >
             ⚙️ Cambiar Jugadores
           </button>
