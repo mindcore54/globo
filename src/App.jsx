@@ -143,6 +143,7 @@ export default function App() {
         ...p,
         lives: initialLives,
         hand: [],
+        previousHand: [],
         needsDraft: true,
       }));
 
@@ -347,6 +348,11 @@ export default function App() {
         ...g,
         players: updatedPlayers,
         isExploding: true,
+        recompensaCartaExtra: false,
+        freezeNextImpulse: false,
+        shieldActive: false,
+        heavyAirActive: false,
+        pendingEndEffects: createInitialPendingEffects(),
         logs: [...explosionLogs, ...g.logs].slice(0, 60),
       };
 
@@ -372,10 +378,11 @@ export default function App() {
           return;
         }
 
-        // Reiniciar nueva ronda
+        // Reiniciar nueva ronda guardando las cartas previas de los sobrevivientes para elegir conservar o descartar
         const newDirection = Math.random() < 0.5 ? 1 : -1;
         const resetPlayers = current.players.map((p) => ({
           ...p,
+          previousHand: p.lives > 0 ? [...p.hand] : [],
           hand: [],
           needsDraft: p.lives > 0,
         }));
@@ -562,7 +569,10 @@ export default function App() {
     if (!g) return;
     const currentPlayer = g.players[g.currentPlayerIndex];
 
-    const draftCards = currentPlayer.needsDraft ? generateDraftCards(5) : [];
+    const excludeIds = (currentPlayer.previousHand || []).map((c) => c.id);
+    const draftCards = currentPlayer.needsDraft
+      ? generateDraftCards(5, excludeIds)
+      : [];
 
     commitGame({
       ...g,
@@ -572,28 +582,27 @@ export default function App() {
   }, [commitGame]);
 
   const handleConfirmDraft = useCallback(
-    (chosenCards) => {
+    (chosenCards, keptCount = 0) => {
       const g = gameRef.current;
       if (!g) return;
 
       const currentPlayer = g.players[g.currentPlayerIndex];
       const updatedPlayers = g.players.map((p, idx) =>
         idx === g.currentPlayerIndex
-          ? { ...p, hand: chosenCards, needsDraft: false }
+          ? { ...p, hand: chosenCards, previousHand: [], needsDraft: false }
           : p
       );
+
+      const logMsg =
+        keptCount > 0
+          ? `🃏 ${currentPlayer.avatar} ${currentPlayer.name} conservó ${keptCount} carta(s) y completó su mano inicial (2 cartas).`
+          : `🃏 ${currentPlayer.avatar} ${currentPlayer.name} eligió 2 cartas iniciales.`;
 
       commitGame({
         ...g,
         players: updatedPlayers,
         draftCards: [],
-        logs: [
-          makeLog(
-            `🃏 ${currentPlayer.avatar} ${currentPlayer.name} eligió 2 cartas iniciales.`,
-            'info'
-          ),
-          ...g.logs,
-        ].slice(0, 60),
+        logs: [makeLog(logMsg, 'info'), ...g.logs].slice(0, 60),
       });
     },
     [commitGame]
@@ -711,18 +720,21 @@ export default function App() {
           break;
         }
         case 'c10': {
-          // Mano Larga: roba 1 carta al azar del objetivo elegido
-          if (selectedTarget) {
-            const targetIdx = updatedPlayers.findIndex(
-              (p) => p.id === selectedTarget.id
+          // Mano Larga: elige un jugador vivo con cartas al azar y le roba 1 carta al azar
+          const eligibleIndices = updatedPlayers
+            .map((p, idx) => ({ p, idx }))
+            .filter(
+              ({ p, idx }) =>
+                idx !== g.currentPlayerIndex && p.lives > 0 && p.hand.length > 0
             );
-            if (targetIdx !== -1 && updatedPlayers[targetIdx].hand.length > 0) {
-              const targetHand = updatedPlayers[targetIdx].hand;
-              const randIndex = Math.floor(Math.random() * targetHand.length);
-              const [stolenCard] = targetHand.splice(randIndex, 1);
-              updatedPlayers[g.currentPlayerIndex].hand.push(stolenCard);
-              actionLogText += ` y robó 1 carta a ${selectedTarget.avatar} ${selectedTarget.name}`;
-            }
+          if (eligibleIndices.length > 0) {
+            const { p: randomTarget, idx: targetIdx } =
+              eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+            const targetHand = updatedPlayers[targetIdx].hand;
+            const randCardIdx = Math.floor(Math.random() * targetHand.length);
+            const [stolenCard] = targetHand.splice(randCardIdx, 1);
+            updatedPlayers[g.currentPlayerIndex].hand.push(stolenCard);
+            actionLogText += ` y robó 1 carta al azar a ${randomTarget.avatar} ${randomTarget.name}`;
           }
           break;
         }
@@ -926,6 +938,7 @@ export default function App() {
         <DraftModal
           player={currentPlayer}
           draftCards={game.draftCards}
+          previousHand={currentPlayer.previousHand}
           onConfirmDraft={handleConfirmDraft}
         />
       )}

@@ -115,8 +115,8 @@ export const CARDS_CATALOG = [
     category: 'red',
     tailwindClasses: CATEGORY_STYLES.red,
     timing: 'immediate',
-    requiresTarget: 'steal',
-    description: 'Roba 1 carta al azar a otro jugador vivo.',
+    requiresTarget: false,
+    description: 'Roba 1 carta al azar de un jugador vivo aleatorio.',
   },
   {
     id: 'c11',
@@ -180,8 +180,18 @@ export function createRandomCard(specificId = null) {
 }
 
 /**
- * Genera `count` cartas aleatorias para la fase de Draft (5 cartas por defecto).
+ * Genera `count` cartas aleatorias sin repeticiones para la fase de Draft (5 cartas por defecto),
+ * excluyendo los IDs indicados en `excludeIds`.
  */
-export function generateDraftCards(count = 5) {
-  return Array.from({ length: count }, () => createRandomCard());
+export function generateDraftCards(count = 5, excludeIds = []) {
+  const excluded = new Set(excludeIds);
+  const pool = CARDS_CATALOG.filter((c) => !excluded.has(c.id));
+  const source = pool.length >= count ? [...pool] : [...CARDS_CATALOG];
+
+  for (let i = source.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [source[i], source[j]] = [source[j], source[i]];
+  }
+
+  return source.slice(0, count).map((template) => createRandomCard(template.id));
 }
