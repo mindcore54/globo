@@ -5,11 +5,15 @@ import { playButtonSound, playErrorSound } from '../utils/soundEffects';
 export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const [players, setPlayers] = useState(initialPlayers);
   const [name, setName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState(() => {
+    const initialUsed = new Set(initialPlayers.map((p) => p.avatar));
+    return AVATARS.find((av) => !initialUsed.has(av)) || AVATARS[0];
+  });
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
   const livesPerPlayer = 3;
+  const usedAvatars = new Set(players.map((p) => p.avatar));
 
   const handleDigit = (digit) => {
     setError('');
@@ -54,6 +58,11 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
       setError('Máximo 8 jugadores por partida.');
       return;
     }
+    if (usedAvatars.has(selectedAvatar)) {
+      playErrorSound();
+      setError('Ese avatar ya está en uso. Elige otro.');
+      return;
+    }
 
     playButtonSound();
     const newPlayer = {
@@ -69,8 +78,8 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
     setPin('');
     setError('');
 
-    const usedAvatars = new Set(nextPlayers.map((p) => p.avatar));
-    const nextAvailable = AVATARS.find((av) => !usedAvatars.has(av));
+    const nextUsedAvatars = new Set(nextPlayers.map((p) => p.avatar));
+    const nextAvailable = AVATARS.find((av) => !nextUsedAvatars.has(av));
     if (nextAvailable) {
       setSelectedAvatar(nextAvailable);
     }
@@ -78,7 +87,15 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
 
   const handleRemovePlayer = (id) => {
     playButtonSound();
-    setPlayers((prev) => prev.filter((p) => p.id !== id));
+    const nextPlayers = players.filter((p) => p.id !== id);
+    setPlayers(nextPlayers);
+    const nextUsedAvatars = new Set(nextPlayers.map((p) => p.avatar));
+    if (nextUsedAvatars.has(selectedAvatar)) {
+      const nextAvailable = AVATARS.find((av) => !nextUsedAvatars.has(av));
+      if (nextAvailable) {
+        setSelectedAvatar(nextAvailable);
+      }
+    }
   };
 
   const canStart = players.length >= 2 && players.length <= 8;
@@ -138,23 +155,39 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               </label>
               <div className="grid grid-cols-6 gap-2">
                 {AVATARS.map((avatar) => {
-                  const isSelected = selectedAvatar === avatar;
+                  const isUsed = usedAvatars.has(avatar);
+                  const isSelected = selectedAvatar === avatar && !isUsed;
+                  const isDisabled = players.length >= 8 || isUsed;
                   return (
                     <button
                       key={avatar}
                       type="button"
-                      disabled={players.length >= 8}
+                      disabled={isDisabled}
+                      title={
+                        isUsed
+                          ? 'Avatar ya elegido por otro jugador'
+                          : `Elegir ${avatar}`
+                      }
                       onClick={() => {
+                        if (isDisabled) return;
                         playButtonSound();
+                        setError('');
                         setSelectedAvatar(avatar);
                       }}
-                      className={`text-2xl md:text-3xl py-2 rounded-2xl border-2 transition-all active:scale-95 ${
-                        isSelected
-                          ? 'bg-yellow-300 border-yellow-500 scale-105 shadow-[0_3px_0_rgb(202,138,4)]'
-                          : 'bg-white/75 border-white hover:bg-white'
+                      className={`relative text-2xl md:text-3xl py-2 rounded-2xl border-2 transition-all ${
+                        isUsed
+                          ? 'bg-slate-200/50 border-white/40 opacity-40 grayscale cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-yellow-300 border-yellow-500 scale-105 shadow-[0_3px_0_rgb(202,138,4)] active:scale-95'
+                          : 'bg-white/75 border-white hover:bg-white active:scale-95'
                       }`}
                     >
-                      {avatar}
+                      <span>{avatar}</span>
+                      {isUsed && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-slate-700 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow">
+                          🔒
+                        </span>
+                      )}
                     </button>
                   );
                 })}
