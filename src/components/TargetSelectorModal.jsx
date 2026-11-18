@@ -10,6 +10,7 @@ export default function TargetSelectorModal({
   if (!pendingCard) return null;
 
   const isSteal = pendingCard.requiresTarget === 'steal';
+  const isSilence = pendingCard.requiresTarget === 'silence';
 
   return (
     <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -23,6 +24,8 @@ export default function TargetSelectorModal({
             <p className="text-sm font-medium text-slate-500">
               {isSteal
                 ? 'Selecciona un jugador vivo con cartas para robarle 1 carta al azar.'
+                : isSilence
+                ? 'Selecciona al jugador vivo cuyas cartas quedarán silenciadas en su próximo turno.'
                 : 'Selecciona al jugador vivo que recibirá el turno al finalizar tus impulsos.'}
             </p>
           </div>

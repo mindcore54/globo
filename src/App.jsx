@@ -161,6 +161,7 @@ export default function App() {
         hand: [],
         previousHand: [],
         needsDraft: true,
+        silencedBy: null,
       }));
 
       const firstPlayerIndex = Math.floor(Math.random() * shuffled.length);
@@ -178,11 +179,10 @@ export default function App() {
         draftCards: [],
         impulsesRemaining: 3,
         impulsesCompleted: 0,
-        cardsUsedThisTurn: 0,
-        recompensaCartaExtra: false,
         freezeNextImpulse: false,
         shieldActive: false,
         heavyAirActive: false,
+        silencedThisTurn: false,
         pendingEndEffects: createInitialPendingEffects(),
         isExploding: false,
         isShieldSaving: false,
@@ -192,9 +192,7 @@ export default function App() {
         winner: null,
         logs: [
           makeLog(
-            `🎈 ¡Inicia Ronda #1! Giro ${
-              initialDirection === 1 ? 'Horario ↻' : 'Antihorario ↺'
-            }. Comienza ${starter.avatar} ${starter.name}.`,
+            `🎈 ¡Inicia Ronda #1! Comienza ${starter.avatar} ${starter.name}.`,
             'round'
           ),
         ],
@@ -223,29 +221,7 @@ export default function App() {
       let nextRisk = g.riskPercent;
       let nextDirection = g.direction;
 
-      // 1. Recompensa de Bombeo Codicioso (+1 carta aleatoria, máx 5 en mano)
-      if (g.recompensaCartaExtra) {
-        const targetPlayer = updatedPlayers[g.currentPlayerIndex];
-        if (targetPlayer.hand.length < 5) {
-          const bonusCard = createRandomCard();
-          targetPlayer.hand.push(bonusCard);
-          newLogs.unshift(
-            makeLog(
-              `🔥 ${currentPlayer.avatar} ${currentPlayer.name} sobrevivió al Bombeo Codicioso y robó 1 carta extra.`,
-              'success'
-            )
-          );
-        } else {
-          newLogs.unshift(
-            makeLog(
-              `🔥 ${currentPlayer.avatar} ${currentPlayer.name} sobrevivió, pero su mano ya estaba llena (5 cartas).`,
-              'info'
-            )
-          );
-        }
-      }
-
-      // 2. Ejecutar efectosPendientesFinDeTurno
+      // 1. Ejecutar efectosPendientesFinDeTurno
       const pending = g.pendingEndEffects;
 
       if (pending.pinCount > 0) {
@@ -296,10 +272,19 @@ export default function App() {
         );
       }
 
-      // 4. Preparar impulsos, trampas entrantes y estado del siguiente jugador
+      // 4. Preparar impulsos, trampas entrantes, silencio y estado del siguiente jugador
       const baseImpulses = pending.doubleTurn ? 6 : 3;
       const nextImpulses = baseImpulses + (pending.extraBlows || 0);
       const nextPlayer = updatedPlayers[nextPlayerIndex];
+      const silencer = nextPlayer.silencedBy;
+      const nextSilencedThisTurn = Boolean(silencer);
+
+      if (silencer) {
+        updatedPlayers[nextPlayerIndex] = {
+          ...nextPlayer,
+          silencedBy: null,
+        };
+      }
 
       const nextIncomingTraps = [];
       if (pending.doubleTurn) {
@@ -351,20 +336,33 @@ export default function App() {
         });
       }
 
+      const hasTurnTrapsFromCurrent = nextIncomingTraps.length > 0;
+      if (silencer) {
+        nextIncomingTraps.push({
+          id: 'c15',
+          emoji: '🤐',
+          name: 'Silencio',
+          detail: `${silencer.avatar} ${silencer.name} silenció tus cartas este turno`,
+        });
+      }
+
+      const noticeAuthor = hasTurnTrapsFromCurrent
+        ? { name: currentPlayer.name, avatar: currentPlayer.avatar }
+        : silencer;
+
       const pendingTrapNotice =
-        nextIncomingTraps.length > 0
+        nextIncomingTraps.length > 0 && noticeAuthor
           ? {
-              fromPlayer: {
-                name: currentPlayer.name,
-                avatar: currentPlayer.avatar,
-              },
+              fromPlayer: noticeAuthor,
               traps: nextIncomingTraps,
             }
           : null;
 
       newLogs.unshift(
         makeLog(
-          `⏭️ Turno pasa a ${nextPlayer.avatar} ${nextPlayer.name} (${nextImpulses} impulsos).`,
+          `⏭️ Turno pasa a ${nextPlayer.avatar} ${nextPlayer.name} (${nextImpulses} impulsos${
+            nextSilencedThisTurn ? ', 🤐 silenciado' : ''
+          }).`,
           'info'
         )
       );
@@ -379,11 +377,10 @@ export default function App() {
         draftCards: [],
         impulsesRemaining: nextImpulses,
         impulsesCompleted: 0,
-        cardsUsedThisTurn: 0,
-        recompensaCartaExtra: false,
         freezeNextImpulse: false,
         shieldActive: false,
         heavyAirActive: Boolean(pending.heavyAirNext),
+        silencedThisTurn: nextSilencedThisTurn,
         pendingEndEffects: createInitialPendingEffects(),
         pendingTrapNotice,
         activeTrapNotice: null,
@@ -406,6 +403,7 @@ export default function App() {
         previousHand: p.lives > 0 ? [...p.hand] : [],
         hand: [],
         needsDraft: p.lives > 0,
+        silencedBy: null,
       }));
 
       const nextStarterIdx = getNextAlivePlayerIndex(
@@ -428,11 +426,10 @@ export default function App() {
         draftCards: [],
         impulsesRemaining: 3,
         impulsesCompleted: 0,
-        cardsUsedThisTurn: 0,
-        recompensaCartaExtra: false,
         freezeNextImpulse: false,
         shieldActive: false,
         heavyAirActive: false,
+        silencedThisTurn: false,
         pendingEndEffects: createInitialPendingEffects(),
         isExploding: false,
         isShieldSaving: false,
@@ -441,9 +438,7 @@ export default function App() {
         activeTrapNotice: null,
         logs: [
           makeLog(
-            `🔄 ¡Ronda #${nextRound}! Globo en 0.5%. Giro ${
-              newDirection === 1 ? 'Horario ➡' : 'Antihorario ⬅'
-            }. Inicia ${nextStarter.avatar} ${nextStarter.name}.`,
+            `🔄 ¡Ronda #${nextRound}! Globo en 0.5%. Inicia ${nextStarter.avatar} ${nextStarter.name}.`,
             'round'
           ),
           ...current.logs,
@@ -515,12 +510,12 @@ export default function App() {
 
       const explodingState = {
         ...g,
-        players: updatedPlayers,
+        players: updatedPlayers.map((p) => ({ ...p, silencedBy: null })),
         isExploding: true,
-        recompensaCartaExtra: false,
         freezeNextImpulse: false,
         shieldActive: false,
         heavyAirActive: false,
+        silencedThisTurn: false,
         pendingEndEffects: createInitialPendingEffects(),
         pendingTrapNotice: null,
         activeTrapNotice: null,
@@ -796,8 +791,8 @@ export default function App() {
 
       const logMsg =
         keptCount > 0
-          ? `🃏 ${currentPlayer.avatar} ${currentPlayer.name} conservó ${keptCount} carta(s) y completó su mano inicial (2 cartas).`
-          : `🃏 ${currentPlayer.avatar} ${currentPlayer.name} eligió 2 cartas iniciales.`;
+          ? `🃏 ${currentPlayer.avatar} ${currentPlayer.name} conservó ${keptCount} carta(s) y completó su mano inicial (3 cartas).`
+          : `🃏 ${currentPlayer.avatar} ${currentPlayer.name} eligió 3 cartas iniciales.`;
 
       commitGame({
         ...g,
@@ -808,29 +803,6 @@ export default function App() {
     },
     [commitGame]
   );
-
-  const handleToggleGreedyPump = useCallback(() => {
-    const g = gameRef.current;
-    if (!g || g.isLocked || g.isExploding || g.recompensaCartaExtra) return;
-    if (g.impulsesRemaining < 1) return;
-
-    const currentPlayer = g.players[g.currentPlayerIndex];
-    if (currentPlayer.hand.length >= 5) return;
-
-    playCardSound();
-    commitGame({
-      ...g,
-      impulsesRemaining: g.impulsesRemaining + 1,
-      recompensaCartaExtra: true,
-      logs: [
-        makeLog(
-          `🔥 ${currentPlayer.avatar} ${currentPlayer.name} arriesgó +1 impulso por carta extra.`,
-          'card'
-        ),
-        ...g.logs,
-      ].slice(0, 60),
-    });
-  }, [commitGame]);
 
   /**
    * Ejecuta el efecto real de una carta (ya sea directa o copiada por Espejo).
@@ -852,7 +824,6 @@ export default function App() {
         };
       });
 
-      const nextCardsUsed = g.cardsUsedThisTurn + 1;
       const nextUltima = isMirror
         ? g.ultimaCartaJugada
         : CARDS_CATALOG.find((c) => c.id === effectiveCard.id) || effectiveCard;
@@ -947,6 +918,24 @@ export default function App() {
           }
           break;
         }
+        case 'c15': {
+          // Silencio: silencia todas las cartas del jugador elegido en su próximo turno
+          if (selectedTarget) {
+            updatedPlayers = updatedPlayers.map((p) =>
+              p.id === selectedTarget.id
+                ? {
+                    ...p,
+                    silencedBy: {
+                      name: currentPlayer.name,
+                      avatar: currentPlayer.avatar,
+                    },
+                  }
+                : p
+            );
+            actionLogText += ` y silenció las cartas de ${selectedTarget.avatar} ${selectedTarget.name} para su próximo turno`;
+          }
+          break;
+        }
         case 'c12': {
           // Reversa: invierte sentido al cerrar turno
           nextPending.reverseCount += 1;
@@ -976,7 +965,6 @@ export default function App() {
         ...g,
         players: updatedPlayers,
         ultimaCartaJugada: nextUltima,
-        cardsUsedThisTurn: nextCardsUsed,
         impulsesRemaining: nextImpulses,
         riskPercent: nextRisk,
         freezeNextImpulse: nextFreeze,
@@ -1002,7 +990,7 @@ export default function App() {
     (card) => {
       const g = gameRef.current;
       if (!g || g.isLocked || g.isExploding || isHoldingRef.current) return;
-      if (g.cardsUsedThisTurn >= 2 || g.impulsesRemaining <= 0) return;
+      if (g.silencedThisTurn || g.impulsesRemaining <= 0) return;
 
       const isMirror = card.id === 'c14';
       if (isMirror && !g.ultimaCartaJugada) return;
@@ -1077,27 +1065,6 @@ export default function App() {
       : otherAlivePlayers
     : [];
 
-  const effectiveDirection =
-    game.pendingEndEffects.reverseCount % 2 === 1
-      ? game.direction * -1
-      : game.direction;
-
-  let nextPreviewPlayer = null;
-  if (game.pendingEndEffects.sniperTargetId) {
-    nextPreviewPlayer =
-      game.players.find(
-        (p) => p.id === game.pendingEndEffects.sniperTargetId && p.lives > 0
-      ) || null;
-  }
-  if (!nextPreviewPlayer) {
-    const previewIdx = getNextAlivePlayerIndex(
-      game.players,
-      game.currentPlayerIndex,
-      effectiveDirection
-    );
-    nextPreviewPlayer = game.players[previewIdx] || null;
-  }
-
   const pastelColors = [
     'bg-cyan-400',
     'bg-teal-300',
@@ -1116,9 +1083,7 @@ export default function App() {
       <HeaderPlayers
         players={game.players}
         currentPlayerIndex={game.currentPlayerIndex}
-        direction={game.direction}
         roundNumber={game.roundNumber}
-        nextPlayer={nextPreviewPlayer}
       />
 
       {/* 2 & 3. Zona Central Interactiva (Globo) + Panel Lateral de Historial */}
@@ -1155,15 +1120,13 @@ export default function App() {
       <PlayerHandFooter
         player={currentPlayer}
         isPrivateHidden={isPrivateHidden}
-        cardsUsedThisTurn={game.cardsUsedThisTurn}
+        silencedThisTurn={game.silencedThisTurn}
         impulsesRemaining={game.impulsesRemaining}
-        greedyPumpActive={game.recompensaCartaExtra}
         ultimaCartaJugada={game.ultimaCartaJugada}
         otherAlivePlayersWithCardsCount={otherAliveWithCards.length}
         otherAlivePlayersCount={otherAlivePlayers.length}
         isHolding={isHolding}
         isExploding={game.isExploding || game.isShieldSaving}
-        onToggleGreedyPump={handleToggleGreedyPump}
         onPlayCard={handlePlayCard}
       />
 

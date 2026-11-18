@@ -3,48 +3,52 @@ import React from 'react';
 export default function PlayerHandFooter({
   player,
   isPrivateHidden,
-  cardsUsedThisTurn,
+  silencedThisTurn,
   impulsesRemaining,
-  greedyPumpActive,
   ultimaCartaJugada,
   otherAlivePlayersWithCardsCount,
   otherAlivePlayersCount,
   isHolding,
   isExploding,
-  onToggleGreedyPump,
   onPlayCard,
 }) {
   if (!player) return null;
 
-  const canActivateGreedy =
-    !isPrivateHidden &&
-    !isHolding &&
-    !isExploding &&
-    !greedyPumpActive &&
-    impulsesRemaining >= 1 &&
-    player.hand.length < 5;
-
-  const cardLimitReached = cardsUsedThisTurn >= 2;
-
   const isCardDisabled = (card) => {
-    if (isPrivateHidden || isHolding || isExploding) return true;
-    if (cardLimitReached) return true;
+    if (isPrivateHidden || isHolding || isExploding || silencedThisTurn) {
+      return true;
+    }
     if (impulsesRemaining <= 0) return true;
 
     if (card.id === 'c14') {
       if (!ultimaCartaJugada) return true;
-      if (ultimaCartaJugada.id === 'c10' && otherAlivePlayersWithCardsCount === 0) return true;
-      if (ultimaCartaJugada.id === 'c11' && otherAlivePlayersCount === 0) return true;
+      if (
+        ultimaCartaJugada.id === 'c10' &&
+        otherAlivePlayersWithCardsCount === 0
+      ) {
+        return true;
+      }
+      if (
+        (ultimaCartaJugada.id === 'c11' || ultimaCartaJugada.id === 'c15') &&
+        otherAlivePlayersCount === 0
+      ) {
+        return true;
+      }
     }
     if (card.id === 'c10' && otherAlivePlayersWithCardsCount === 0) return true;
-    if (card.id === 'c11' && otherAlivePlayersCount === 0) return true;
+    if (
+      (card.id === 'c11' || card.id === 'c15') &&
+      otherAlivePlayersCount === 0
+    ) {
+      return true;
+    }
 
     return false;
   };
 
   return (
     <footer className="w-full bg-white/35 backdrop-blur-xl border-t-4 border-white/60 px-3 py-2.5 flex flex-col gap-2 shrink-0">
-      {/* Barra superior del footer: Identidad, Bombeo Codicioso y Contador de Cartas */}
+      {/* Barra superior del footer: Identidad y aviso si está silenciado */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="bg-white/85 border-2 border-white rounded-full px-3 py-1 flex items-center gap-2 shadow-sm">
@@ -53,33 +57,19 @@ export default function PlayerHandFooter({
               Mano de {player.name}
             </span>
           </div>
-          <span className="text-xs font-black bg-cyan-900 text-white px-3 py-1 rounded-full shadow-sm">
-            Cartas usadas este turno: {cardsUsedThisTurn}/2
-          </span>
+
+          {!isPrivateHidden && silencedThisTurn && (
+            <span className="text-xs font-black uppercase bg-rose-500 text-white border-2 border-rose-300 px-3 py-1 rounded-full shadow animate-pulse">
+              🤐 ¡Estás silenciado este turno! No puedes usar cartas
+            </span>
+          )}
         </div>
 
-        {/* Botón Toggle Bombeo Codicioso estilo arcade 3D */}
-        <button
-          type="button"
-          disabled={!canActivateGreedy}
-          onClick={onToggleGreedyPump}
-          className={`px-4 py-1.5 rounded-xl font-black text-xs md:text-sm border-2 transition flex items-center gap-1.5 ${
-            greedyPumpActive
-              ? 'bg-orange-400 border-orange-200 text-orange-950 shadow-sm cursor-default'
-              : canActivateGreedy
-              ? 'bg-yellow-400 hover:bg-yellow-300 border-yellow-300 text-yellow-950 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none'
-              : 'bg-white/45 border-white/60 text-cyan-950/45 cursor-not-allowed'
-          }`}
-        >
-          <span>🔥</span>
-          <span>
-            {greedyPumpActive
-              ? 'Bombeo Codicioso Activado (+1 Carta al terminar)'
-              : player.hand.length >= 5
-              ? 'Mano llena (Máx. 5 cartas)'
-              : 'Arriesgar +1 Impulso por Carta Extra'}
+        {!isPrivateHidden && !silencedThisTurn && player.hand.length > 0 && (
+          <span className="text-xs font-black uppercase bg-white/75 text-cyan-950 border-2 border-white px-3 py-1 rounded-full shadow-sm">
+            🃏 Sin límite de cartas por turno
           </span>
-        </button>
+        )}
       </div>
 
       {/* Contenedor horizontal de cartas en mano */}
@@ -89,7 +79,7 @@ export default function PlayerHandFooter({
         </div>
       ) : player.hand.length === 0 ? (
         <div className="h-28 flex items-center justify-center bg-white/40 border-2 border-dashed border-white/80 rounded-2xl text-sm text-cyan-950/75 font-bold">
-          No tienes cartas en la mano. ¡Infla el globo o activa el Bombeo Codicioso!
+          No tienes cartas en la mano. ¡Infla el globo!
         </div>
       ) : (
         <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 custom-scrollbar">
@@ -116,6 +106,8 @@ export default function PlayerHandFooter({
                   <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-lg bg-black/10">
                     {isMirrorBlocked
                       ? 'Sin carta previa'
+                      : silencedThisTurn
+                      ? 'Silenciada 🤐'
                       : card.category === 'green'
                       ? 'Defensa'
                       : card.category === 'red'

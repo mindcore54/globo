@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { playButtonSound, playCardSelectSound } from '../utils/soundEffects';
 
+const TARGET_HAND_SIZE = 3;
+
 export default function DraftModal({
   player,
   draftCards,
   previousHand = [],
   onConfirmDraft,
 }) {
-  // Máximo 2 cartas de la ronda anterior (deduplicadas por ID)
+  // Máximo 3 cartas de la ronda anterior (deduplicadas por ID)
   const uniquePreviousHand = useMemo(() => {
     const seen = new Set();
     return previousHand
@@ -16,7 +18,7 @@ export default function DraftModal({
         seen.add(card.id);
         return true;
       })
-      .slice(0, 2);
+      .slice(0, TARGET_HAND_SIZE);
   }, [previousHand]);
 
   const [step, setStep] = useState('select'); // 'decide' | 'select'
@@ -44,7 +46,7 @@ export default function DraftModal({
 
   const prevInstanceIdSet = new Set(uniquePreviousHand.map((c) => c.instanceId));
 
-  // Paso 1: Toggle de qué cartas anteriores llevar (si quiere conservar alguna o cambiar)
+  // Paso 1: Toggle de qué cartas anteriores conservar
   const toggleDecideCard = (instanceId) => {
     setDecideKeepIds((prev) => {
       const exists = prev.includes(instanceId);
@@ -53,14 +55,14 @@ export default function DraftModal({
     });
   };
 
-  // Paso 1 (con 2 cartas): Conservar ambas inmediatamente sin abrir la ventana de 5 cartas
-  const handleKeepTwoImmediately = () => {
+  // Paso 1 (con 3 cartas): Conservar todas inmediatamente sin abrir la ventana de 5 cartas
+  const handleKeepAllThreeImmediately = () => {
     const kept = uniquePreviousHand.filter((c) =>
       decideKeepIds.includes(c.instanceId)
     );
-    if (kept.length !== 2) return;
+    if (kept.length !== TARGET_HAND_SIZE) return;
     playButtonSound();
-    onConfirmDraft(kept, 2);
+    onConfirmDraft(kept, TARGET_HAND_SIZE);
   };
 
   // Paso 1 -> Paso 2: Fija las 5 cartas de la ventana de selección (no cambian al desmarcar)
@@ -86,7 +88,7 @@ export default function DraftModal({
         playCardSelectSound(false);
         return prev.filter((id) => id !== instanceId);
       }
-      if (prev.length >= 2) {
+      if (prev.length >= TARGET_HAND_SIZE) {
         return prev;
       }
       playCardSelectSound(true);
@@ -95,7 +97,7 @@ export default function DraftModal({
   };
 
   const handleConfirmSelection = () => {
-    if (selectedIds.length !== 2) return;
+    if (selectedIds.length !== TARGET_HAND_SIZE) return;
     playButtonSound();
     const chosen = fixedPool.filter((c) => selectedIds.includes(c.instanceId));
     const keptCount = chosen.filter((c) =>
@@ -109,11 +111,12 @@ export default function DraftModal({
   // ============================================================================
   if (step === 'decide') {
     const keptCount = decideKeepIds.length;
-    const hasTwoPrev = uniquePreviousHand.length === 2;
+    const hasThreePrev = uniquePreviousHand.length === TARGET_HAND_SIZE;
+    const missingForThree = Math.max(0, TARGET_HAND_SIZE - keptCount);
 
     return (
       <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-2xl bg-white border-4 border-cyan-500 rounded-[2rem] p-5 md:p-7 shadow-2xl flex flex-col gap-5 text-slate-800">
+        <div className="w-full max-w-3xl bg-white border-4 border-cyan-500 rounded-[2rem] p-5 md:p-7 shadow-2xl flex flex-col gap-5 text-slate-800">
           <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-4">
             <span className="text-4xl">{player.avatar}</span>
             <div>
@@ -121,9 +124,9 @@ export default function DraftModal({
                 Cartas de la Ronda Anterior — {player.name}
               </h2>
               <p className="text-sm font-medium text-slate-600">
-                {hasTwoPrev
-                  ? 'Puedes conservar tus 2 cartas directamente o pasar a cambiarlas en el Draft.'
-                  : 'Tienes 1 carta de la ronda anterior. Decide si deseas conservarla y elegir 1 nueva, o descartarla.'}
+                {hasThreePrev
+                  ? 'Puedes conservar tus 3 cartas directamente o pasar a cambiar alguna en el Draft.'
+                  : `Tienes ${uniquePreviousHand.length} carta(s) de la ronda anterior. Decide si conservarlas para completar ${TARGET_HAND_SIZE} o descartarlas.`}
               </p>
             </div>
           </div>
@@ -136,7 +139,7 @@ export default function DraftModal({
                   key={card.instanceId}
                   type="button"
                   onClick={() => toggleDecideCard(card.instanceId)}
-                  className={`relative w-44 rounded-2xl border-[3px] p-4 flex flex-col items-center justify-between text-center min-h-[175px] transition-all ${
+                  className={`relative w-40 sm:w-44 rounded-2xl border-[3px] p-4 flex flex-col items-center justify-between text-center min-h-[170px] transition-all ${
                     card.tailwindClasses
                   } ${
                     isKept
@@ -166,15 +169,15 @@ export default function DraftModal({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t-2 border-slate-100">
-            {hasTwoPrev ? (
+            {hasThreePrev ? (
               <>
-                {keptCount === 2 && (
+                {keptCount === TARGET_HAND_SIZE && (
                   <button
                     type="button"
-                    onClick={handleKeepTwoImmediately}
+                    onClick={handleKeepAllThreeImmediately}
                     className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-black text-sm md:text-base uppercase border-2 border-emerald-300 shadow-[0_4px_0_#047857] active:translate-y-[2px] active:shadow-none transition"
                   >
-                    ✅ Conservar mis 2 Cartas
+                    ✅ Conservar mis 3 Cartas
                   </button>
                 )}
                 <button
@@ -182,10 +185,10 @@ export default function DraftModal({
                   onClick={() => handleGoToSelectWindow()}
                   className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-sm md:text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
                 >
-                  {keptCount === 2
+                  {keptCount === TARGET_HAND_SIZE
                     ? '🔄 Cambiar Alguna Carta'
-                    : keptCount === 1
-                    ? '🔄 Conservar 1 y Elegir 1 Más'
+                    : keptCount > 0
+                    ? `🔄 Conservar ${keptCount} y Elegir ${missingForThree} Más`
                     : '🗑️ Descartar y Ver 5 Cartas'}
                 </button>
               </>
@@ -193,18 +196,22 @@ export default function DraftModal({
               <>
                 <button
                   type="button"
-                  onClick={() => handleGoToSelectWindow(uniquePreviousHand)}
+                  onClick={() => handleGoToSelectWindow()}
                   className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-sm md:text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
                 >
-                  ✅ Conservar y Elegir 1 Más
+                  {keptCount > 0
+                    ? `✅ Conservar ${keptCount} y Elegir ${missingForThree} Más`
+                    : '🔄 Ir a Selección (5 Cartas Nuevas)'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleGoToSelectWindow([])}
-                  className="flex-1 py-3.5 px-5 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black text-sm md:text-base uppercase border-2 border-red-400 shadow-[0_4px_0_#991b1b] active:translate-y-[2px] active:shadow-none transition"
-                >
-                  🗑️ Descartarla (5 Cartas Nuevas)
-                </button>
+                {keptCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleGoToSelectWindow([])}
+                    className="flex-1 py-3.5 px-5 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black text-sm md:text-base uppercase border-2 border-red-400 shadow-[0_4px_0_#991b1b] active:translate-y-[2px] active:shadow-none transition"
+                  >
+                    🗑️ Descartar Todas (5 Cartas Nuevas)
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -214,7 +221,7 @@ export default function DraftModal({
   }
 
   // ============================================================================
-  // SEGUNDA VENTANA: Selección sobre 5 cartas fijas
+  // SEGUNDA VENTANA: Selección de 3 cartas sobre 5 cartas fijas
   // ============================================================================
   return (
     <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 overflow-y-auto">
@@ -227,7 +234,7 @@ export default function DraftModal({
                 Draft de Ronda — {player.name}
               </h2>
               <p className="text-sm font-medium text-slate-600">
-                Elige <strong className="text-cyan-700">2 cartas</strong> de estas 5 para tu mano inicial. Las demás se descartarán al confirmar.
+                Elige <strong className="text-cyan-700">{TARGET_HAND_SIZE} cartas</strong> de estas 5 para tu mano inicial. Las demás se descartarán al confirmar.
               </p>
             </div>
           </div>
@@ -237,7 +244,7 @@ export default function DraftModal({
               Seleccionadas
             </span>
             <span className="text-2xl font-black text-cyan-900">
-              {selectedIds.length} / 2
+              {selectedIds.length} / {TARGET_HAND_SIZE}
             </span>
           </div>
         </div>
@@ -247,7 +254,7 @@ export default function DraftModal({
           {fixedPool.map((card) => {
             const isSelected = selectedIds.includes(card.instanceId);
             const isFromPrevRound = prevInstanceIdSet.has(card.instanceId);
-            const isDisabled = !isSelected && selectedIds.length >= 2;
+            const isDisabled = !isSelected && selectedIds.length >= TARGET_HAND_SIZE;
 
             return (
               <button
@@ -300,13 +307,13 @@ export default function DraftModal({
         <div className="flex justify-end pt-1">
           <button
             type="button"
-            disabled={selectedIds.length !== 2}
+            disabled={selectedIds.length !== TARGET_HAND_SIZE}
             onClick={handleConfirmSelection}
             className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed text-yellow-950 font-black text-base uppercase tracking-wide border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
           >
-            {selectedIds.length === 2
-              ? '✅ Confirmar Mano Inicial (2 Cartas)'
-              : `Selecciona ${2 - selectedIds.length} carta(s) más`}
+            {selectedIds.length === TARGET_HAND_SIZE
+              ? `✅ Confirmar Mano Inicial (${TARGET_HAND_SIZE} Cartas)`
+              : `Selecciona ${TARGET_HAND_SIZE - selectedIds.length} carta(s) más`}
           </button>
         </div>
       </div>

@@ -128,6 +128,16 @@ export const CARDS_CATALOG = [
     requiresTarget: 'sniper',
     description: 'Al terminar tu turno, salta directo al jugador elegido.',
   },
+  {
+    id: 'c15',
+    name: 'Silencio',
+    emoji: '🤐',
+    category: 'red',
+    tailwindClasses: CATEGORY_STYLES.red,
+    timing: 'immediate',
+    requiresTarget: 'silence',
+    description: 'Elige a un jugador: en su próximo turno no podrá usar cartas.',
+  },
 
   // 🟡 Cartas Amarillas (Alteración de Lógica y Mesa)
   {

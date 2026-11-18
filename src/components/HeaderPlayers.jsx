@@ -3,17 +3,13 @@ import React from 'react';
 export default function HeaderPlayers({
   players,
   currentPlayerIndex,
-  direction,
   roundNumber,
-  nextPlayer,
 }) {
-  const isClockwise = direction === 1;
-
   return (
     <header className="w-full bg-white/30 backdrop-blur-xl border-b-4 border-white/50 px-3 py-2 flex items-center justify-between gap-3 shrink-0 shadow-sm">
-      {/* Badge de Ronda, Sentido de Giro y Próximo Jugador */}
+      {/* Badge de Ronda (sentido de giro oculto en UI por diseño) */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="px-2 py-0.5 flex flex-col items-center justify-center">
+        <div className="px-2.5 py-0.5 flex flex-col items-center justify-center">
           <span className="text-[10px] uppercase tracking-widest text-white font-black drop-shadow-[0_2px_0_rgba(0,0,0,0.2)] leading-none">
             RONDA
           </span>
@@ -21,38 +17,12 @@ export default function HeaderPlayers({
             {roundNumber}
           </span>
         </div>
-
-        <div className="flex flex-col gap-1">
-          <div
-            className={`rounded-xl px-2.5 py-1 border-2 font-black text-[11px] md:text-xs flex items-center gap-1.5 shadow-sm transition-colors ${
-              isClockwise
-                ? 'bg-white/85 border-cyan-800 text-cyan-950'
-                : 'bg-yellow-300 border-yellow-700 text-yellow-950'
-            }`}
-          >
-            <span className="text-sm leading-none">
-              {isClockwise ? '➡' : '⬅'}
-            </span>
-            <span className="uppercase tracking-tight">
-              {isClockwise ? 'Horario (Derecha)' : 'Antihorario (Izquierda)'}
-            </span>
-          </div>
-
-          {nextPlayer && (
-            <div className="rounded-xl px-2.5 py-0.5 bg-cyan-950/75 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm">
-              <span className="text-cyan-300 uppercase font-black">Sig:</span>
-              <span>{nextPlayer.avatar}</span>
-              <span className="truncate max-w-[85px] uppercase">{nextPlayer.name}</span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Fila horizontal de tarjetas de jugadores en orden de mesa */}
       <div className="flex items-center gap-2 overflow-x-auto py-0.5 flex-1 justify-start lg:justify-center custom-scrollbar">
         {players.map((player, index) => {
           const isCurrent = index === currentPlayerIndex && player.lives > 0;
-          const isNext = nextPlayer && player.id === nextPlayer.id && !isCurrent && player.lives > 0;
           const isEliminated = player.lives <= 0;
 
           return (
@@ -63,8 +33,6 @@ export default function HeaderPlayers({
                   ? 'bg-white/40 border-slate-400/70 opacity-60 grayscale'
                   : isCurrent
                   ? 'bg-yellow-300 border-yellow-600 ring-2 ring-white shadow-lg scale-[1.04]'
-                  : isNext
-                  ? 'bg-cyan-50 border-cyan-600 shadow-sm'
                   : 'bg-white/85 border-cyan-800 shadow-sm'
               }`}
             >
@@ -83,6 +51,14 @@ export default function HeaderPlayers({
                   >
                     {player.name}
                   </span>
+                  {player.silencedBy && !isEliminated && (
+                    <span
+                      title="Silenciado para su próximo turno"
+                      className="text-xs bg-rose-500 text-white px-1 rounded-md leading-tight"
+                    >
+                      🤐
+                    </span>
+                  )}
                 </div>
 
                 {isEliminated ? (
