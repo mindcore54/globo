@@ -11,6 +11,9 @@ export default function TargetSelectorModal({
 
   const isSteal = pendingCard.requiresTarget === 'steal';
   const isSilence = pendingCard.requiresTarget === 'silence';
+  const isLeaderImpulses = pendingCard.requiresTarget === 'leader';
+  const isLeaderCards = pendingCard.requiresTarget === 'leader_cards';
+  const isLeaderRisk = pendingCard.requiresTarget === 'leader_risk';
 
   return (
     <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -26,6 +29,12 @@ export default function TargetSelectorModal({
                 ? 'Selecciona un jugador vivo con cartas para robarle 1 carta al azar.'
                 : isSilence
                 ? 'Selecciona al jugador vivo cuyas cartas quedarán silenciadas en su próximo turno.'
+                : isLeaderImpulses
+                ? '👑 Venganza: elige a quien va ganando en vidas para darle +3 impulsos en su próximo turno.'
+                : isLeaderCards
+                ? '👑 Venganza: elige a quien va ganando en vidas para cambiarle todas sus cartas al azar.'
+                : isLeaderRisk
+                ? '👑 Venganza: elige a quien va ganando en vidas para subirle +15% de riesgo cuando le toque su turno.'
                 : 'Selecciona al jugador vivo que recibirá el turno al finalizar tus impulsos.'}
             </p>
           </div>

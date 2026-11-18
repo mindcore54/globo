@@ -12,6 +12,7 @@ export const CATEGORY_STYLES = {
   green: 'bg-emerald-100 border-emerald-500 text-emerald-900',
   red: 'bg-rose-100 border-rose-500 text-rose-900',
   yellow: 'bg-amber-100 border-amber-500 text-amber-900',
+  purple: 'bg-purple-100 border-purple-500 text-purple-900',
 };
 
 export const CARDS_CATALOG = [
@@ -170,17 +171,54 @@ export const CARDS_CATALOG = [
     requiresTarget: false,
     description: 'Copia el efecto de la última carta jugada en la ronda.',
   },
+
+  // 🟣 Cartas Moradas (Venganza — solo aparecen a quienes van abajo en vidas)
+  {
+    id: 'c16',
+    name: 'Desquicio',
+    emoji: '🤯',
+    category: 'purple',
+    tailwindClasses: CATEGORY_STYLES.purple,
+    timing: 'immediate',
+    requiresTarget: 'leader',
+    description: 'Elige a un líder en vidas: recibe +3 impulsos en su próximo turno.',
+  },
+  {
+    id: 'c17',
+    name: 'Sabotaje',
+    emoji: '🧨',
+    category: 'purple',
+    tailwindClasses: CATEGORY_STYLES.purple,
+    timing: 'immediate',
+    requiresTarget: 'leader_cards',
+    description: 'Elige a un líder en vidas: le cambia todas sus cartas al azar.',
+  },
+  {
+    id: 'c18',
+    name: 'Bomba de Tiempo',
+    emoji: '💣',
+    category: 'purple',
+    tailwindClasses: CATEGORY_STYLES.purple,
+    timing: 'immediate',
+    requiresTarget: 'leader_risk',
+    description: 'Elige a un líder en vidas: cuando le toque su turno, el riesgo sube +15%.',
+  },
 ];
 
 let cardInstanceCounter = 0;
 
 /**
  * Crea una instancia única de carta aleatoria (o de una carta específica por ID).
+ * Por defecto excluye cartas moradas (Venganza) al generar cartas al azar.
  */
-export function createRandomCard(specificId = null) {
+export function createRandomCard(specificId = null, allowPurple = false) {
+  const randomPool = allowPurple
+    ? CARDS_CATALOG
+    : CARDS_CATALOG.filter((c) => c.category !== 'purple');
+
   const template = specificId
     ? CARDS_CATALOG.find((c) => c.id === specificId)
-    : CARDS_CATALOG[Math.floor(Math.random() * CARDS_CATALOG.length)];
+    : randomPool[Math.floor(Math.random() * randomPool.length)];
 
   cardInstanceCounter += 1;
   return {
@@ -191,12 +229,15 @@ export function createRandomCard(specificId = null) {
 
 /**
  * Genera `count` cartas aleatorias sin repeticiones para la fase de Draft (5 cartas por defecto),
- * excluyendo los IDs indicados en `excludeIds`.
+ * excluyendo los IDs indicados en `excludeIds`. Si `allowPurple === false`, excluye las cartas moradas.
  */
-export function generateDraftCards(count = 5, excludeIds = []) {
+export function generateDraftCards(count = 5, excludeIds = [], allowPurple = false) {
   const excluded = new Set(excludeIds);
-  const pool = CARDS_CATALOG.filter((c) => !excluded.has(c.id));
-  const source = pool.length >= count ? [...pool] : [...CARDS_CATALOG];
+  const allowedCatalog = allowPurple
+    ? CARDS_CATALOG
+    : CARDS_CATALOG.filter((c) => c.category !== 'purple');
+  const pool = allowedCatalog.filter((c) => !excluded.has(c.id));
+  const source = pool.length >= count ? [...pool] : [...allowedCatalog];
 
   for (let i = source.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

@@ -59,6 +59,22 @@ export default function HeaderPlayers({
                       🤐
                     </span>
                   )}
+                  {player.desquicioBy && !isEliminated && (
+                    <span
+                      title={`Desquicio (+${player.desquicioBy.extraImpulses} impulsos en su próximo turno)`}
+                      className="text-[10px] font-black bg-purple-600 text-white px-1.5 py-0.5 rounded-md leading-tight"
+                    >
+                      🤯+{player.desquicioBy.extraImpulses}
+                    </span>
+                  )}
+                  {player.cursedRiskBy && !isEliminated && (
+                    <span
+                      title={`Bomba de Tiempo (+${player.cursedRiskBy.extraRisk}% riesgo en su próximo turno)`}
+                      className="text-[10px] font-black bg-purple-700 text-white px-1.5 py-0.5 rounded-md leading-tight"
+                    >
+                      💣+{player.cursedRiskBy.extraRisk}%
+                    </span>
+                  )}
                 </div>
 
                 {isEliminated ? (

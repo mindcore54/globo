@@ -8,11 +8,21 @@ export default function PlayerHandFooter({
   ultimaCartaJugada,
   otherAlivePlayersWithCardsCount,
   otherAlivePlayersCount,
+  leaderOpponentsCount,
+  leaderOpponentsWithCardsCount,
   isHolding,
   isExploding,
   onPlayCard,
 }) {
   if (!player) return null;
+
+  const isTargetMissingForId = (cardId) => {
+    if (cardId === 'c10') return otherAlivePlayersWithCardsCount === 0;
+    if (cardId === 'c11' || cardId === 'c15') return otherAlivePlayersCount === 0;
+    if (cardId === 'c16' || cardId === 'c18') return leaderOpponentsCount === 0;
+    if (cardId === 'c17') return leaderOpponentsWithCardsCount === 0;
+    return false;
+  };
 
   const isCardDisabled = (card) => {
     if (isPrivateHidden || isHolding || isExploding || silencedThisTurn) {
@@ -22,28 +32,18 @@ export default function PlayerHandFooter({
 
     if (card.id === 'c14') {
       if (!ultimaCartaJugada) return true;
-      if (
-        ultimaCartaJugada.id === 'c10' &&
-        otherAlivePlayersWithCardsCount === 0
-      ) {
-        return true;
-      }
-      if (
-        (ultimaCartaJugada.id === 'c11' || ultimaCartaJugada.id === 'c15') &&
-        otherAlivePlayersCount === 0
-      ) {
-        return true;
-      }
+      return isTargetMissingForId(ultimaCartaJugada.id);
     }
-    if (card.id === 'c10' && otherAlivePlayersWithCardsCount === 0) return true;
-    if (
-      (card.id === 'c11' || card.id === 'c15') &&
-      otherAlivePlayersCount === 0
-    ) {
-      return true;
-    }
+    return isTargetMissingForId(card.id);
+  };
 
-    return false;
+  const getCategoryLabel = (card, isMirrorBlocked) => {
+    if (isMirrorBlocked) return 'Sin carta previa';
+    if (silencedThisTurn) return 'Silenciada 🤐';
+    if (card.category === 'green') return 'Defensa';
+    if (card.category === 'red') return 'Ataque';
+    if (card.category === 'purple') return 'Venganza';
+    return 'Mesa';
   };
 
   return (
@@ -104,15 +104,7 @@ export default function PlayerHandFooter({
                 <div className="flex items-start justify-between gap-1">
                   <span className="text-2xl leading-none">{card.emoji}</span>
                   <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-lg bg-black/10">
-                    {isMirrorBlocked
-                      ? 'Sin carta previa'
-                      : silencedThisTurn
-                      ? 'Silenciada 🤐'
-                      : card.category === 'green'
-                      ? 'Defensa'
-                      : card.category === 'red'
-                      ? 'Ataque'
-                      : 'Mesa'}
+                    {getCategoryLabel(card, isMirrorBlocked)}
                   </span>
                 </div>
 

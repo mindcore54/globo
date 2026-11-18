@@ -162,6 +162,9 @@ export default function App() {
         previousHand: [],
         needsDraft: true,
         silencedBy: null,
+        desquicioBy: null,
+        sabotagedBy: null,
+        cursedRiskBy: null,
       }));
 
       const firstPlayerIndex = Math.floor(Math.random() * shuffled.length);
@@ -272,17 +275,38 @@ export default function App() {
         );
       }
 
-      // 4. Preparar impulsos, trampas entrantes, silencio y estado del siguiente jugador
+      // 4. Preparar impulsos, riesgo, trampas entrantes, silencio y cartas moradas del siguiente jugador
       const baseImpulses = pending.doubleTurn ? 6 : 3;
-      const nextImpulses = baseImpulses + (pending.extraBlows || 0);
       const nextPlayer = updatedPlayers[nextPlayerIndex];
       const silencer = nextPlayer.silencedBy;
+      const desquicioEffect = nextPlayer.desquicioBy;
+      const cursedRiskEffect = nextPlayer.cursedRiskBy;
+      const sabotagedEffect = nextPlayer.sabotagedBy;
       const nextSilencedThisTurn = Boolean(silencer);
 
-      if (silencer) {
+      const extraDesquicio = desquicioEffect ? desquicioEffect.extraImpulses : 0;
+      const nextImpulses = baseImpulses + (pending.extraBlows || 0) + extraDesquicio;
+
+      if (cursedRiskEffect) {
+        nextRisk = Math.min(
+          99.0,
+          Number((nextRisk + cursedRiskEffect.extraRisk).toFixed(1))
+        );
+        newLogs.unshift(
+          makeLog(
+            `💣 ¡Bomba de Tiempo sobre ${nextPlayer.avatar} ${nextPlayer.name}! El riesgo subió +${cursedRiskEffect.extraRisk}% → ahora en ${nextRisk.toFixed(1)}%.`,
+            'danger'
+          )
+        );
+      }
+
+      if (silencer || desquicioEffect || cursedRiskEffect || sabotagedEffect) {
         updatedPlayers[nextPlayerIndex] = {
           ...nextPlayer,
           silencedBy: null,
+          desquicioBy: null,
+          cursedRiskBy: null,
+          sabotagedBy: null,
         };
       }
 
@@ -345,10 +369,34 @@ export default function App() {
           detail: `${silencer.avatar} ${silencer.name} silenció tus cartas este turno`,
         });
       }
+      if (desquicioEffect) {
+        nextIncomingTraps.push({
+          id: 'c16',
+          emoji: '🤯',
+          name: 'Desquicio',
+          detail: `${desquicioEffect.avatar} ${desquicioEffect.name} te dio +${desquicioEffect.extraImpulses} impulsos por ir ganando`,
+        });
+      }
+      if (cursedRiskEffect) {
+        nextIncomingTraps.push({
+          id: 'c18',
+          emoji: '💣',
+          name: 'Bomba de Tiempo',
+          detail: `${cursedRiskEffect.avatar} ${cursedRiskEffect.name} subió +${cursedRiskEffect.extraRisk}% el riesgo por ir ganando`,
+        });
+      }
+      if (sabotagedEffect) {
+        nextIncomingTraps.push({
+          id: 'c17',
+          emoji: '🧨',
+          name: 'Sabotaje',
+          detail: `${sabotagedEffect.avatar} ${sabotagedEffect.name} cambió todas tus cartas por ir ganando`,
+        });
+      }
 
       const noticeAuthor = hasTurnTrapsFromCurrent
         ? { name: currentPlayer.name, avatar: currentPlayer.avatar }
-        : silencer;
+        : silencer || desquicioEffect || cursedRiskEffect || sabotagedEffect;
 
       const pendingTrapNotice =
         nextIncomingTraps.length > 0 && noticeAuthor
@@ -404,6 +452,9 @@ export default function App() {
         hand: [],
         needsDraft: p.lives > 0,
         silencedBy: null,
+        desquicioBy: null,
+        sabotagedBy: null,
+        cursedRiskBy: null,
       }));
 
       const nextStarterIdx = getNextAlivePlayerIndex(
@@ -510,7 +561,13 @@ export default function App() {
 
       const explodingState = {
         ...g,
-        players: updatedPlayers.map((p) => ({ ...p, silencedBy: null })),
+        players: updatedPlayers.map((p) => ({
+          ...p,
+          silencedBy: null,
+          desquicioBy: null,
+          sabotagedBy: null,
+          cursedRiskBy: null,
+        })),
         isExploding: true,
         freezeNextImpulse: false,
         shieldActive: false,
@@ -745,8 +802,12 @@ export default function App() {
     const currentPlayer = g.players[g.currentPlayerIndex];
 
     const excludeIds = (currentPlayer.previousHand || []).map((c) => c.id);
+    const maxAliveLives = Math.max(
+      ...g.players.filter((p) => p.lives > 0).map((p) => p.lives)
+    );
+    const allowPurple = currentPlayer.lives < maxAliveLives;
     const draftCards = currentPlayer.needsDraft
-      ? generateDraftCards(5, excludeIds)
+      ? generateDraftCards(5, excludeIds, allowPurple)
       : [];
 
     const trapToShow = g.pendingTrapNotice;
@@ -936,6 +997,65 @@ export default function App() {
           }
           break;
         }
+        case 'c16': {
+          // Desquicio (Venganza): +3 impulsos al líder elegido cuando le toque su próximo turno
+          if (selectedTarget) {
+            updatedPlayers = updatedPlayers.map((p) =>
+              p.id === selectedTarget.id
+                ? {
+                    ...p,
+                    desquicioBy: {
+                      name: currentPlayer.name,
+                      avatar: currentPlayer.avatar,
+                      extraImpulses: (p.desquicioBy?.extraImpulses || 0) + 3,
+                    },
+                  }
+                : p
+            );
+            actionLogText += ` y lanzó +3 impulsos sobre ${selectedTarget.avatar} ${selectedTarget.name}`;
+          }
+          break;
+        }
+        case 'c17': {
+          // Sabotaje (Venganza): cambia todas las cartas del líder elegido por nuevas al azar
+          if (selectedTarget) {
+            updatedPlayers = updatedPlayers.map((p) => {
+              if (p.id !== selectedTarget.id) return p;
+              const count = p.hand.length;
+              return {
+                ...p,
+                hand: Array.from({ length: count }, () =>
+                  createRandomCard(null, false)
+                ),
+                sabotagedBy: {
+                  name: currentPlayer.name,
+                  avatar: currentPlayer.avatar,
+                },
+              };
+            });
+            actionLogText += ` y saboteó todas las cartas de ${selectedTarget.avatar} ${selectedTarget.name}`;
+          }
+          break;
+        }
+        case 'c18': {
+          // Bomba de Tiempo (Venganza): +15% riesgo al líder elegido cuando le toque su próximo turno
+          if (selectedTarget) {
+            updatedPlayers = updatedPlayers.map((p) =>
+              p.id === selectedTarget.id
+                ? {
+                    ...p,
+                    cursedRiskBy: {
+                      name: currentPlayer.name,
+                      avatar: currentPlayer.avatar,
+                      extraRisk: (p.cursedRiskBy?.extraRisk || 0) + 15,
+                    },
+                  }
+                : p
+            );
+            actionLogText += ` y plantó +15% de riesgo a ${selectedTarget.avatar} ${selectedTarget.name}`;
+          }
+          break;
+        }
         case 'c12': {
           // Reversa: invierte sentido al cerrar turno
           nextPending.reverseCount += 1;
@@ -1059,9 +1179,25 @@ export default function App() {
     (p) => p.hand.length > 0
   );
 
+  const maxOpponentLives = Math.max(
+    0,
+    ...otherAlivePlayers.map((p) => p.lives)
+  );
+  const leaderOpponents = otherAlivePlayers.filter(
+    (p) => p.lives === maxOpponentLives
+  );
+  const leaderOpponentsWithCards = leaderOpponents.filter(
+    (p) => p.hand.length > 0
+  );
+
   const targetCandidates = pendingTargetSelection
     ? pendingTargetSelection.effectiveCard.requiresTarget === 'steal'
       ? otherAliveWithCards
+      : pendingTargetSelection.effectiveCard.requiresTarget === 'leader' ||
+        pendingTargetSelection.effectiveCard.requiresTarget === 'leader_risk'
+      ? leaderOpponents
+      : pendingTargetSelection.effectiveCard.requiresTarget === 'leader_cards'
+      ? leaderOpponentsWithCards
       : otherAlivePlayers
     : [];
 
@@ -1125,6 +1261,8 @@ export default function App() {
         ultimaCartaJugada={game.ultimaCartaJugada}
         otherAlivePlayersWithCardsCount={otherAliveWithCards.length}
         otherAlivePlayersCount={otherAlivePlayers.length}
+        leaderOpponentsCount={leaderOpponents.length}
+        leaderOpponentsWithCardsCount={leaderOpponentsWithCards.length}
         isHolding={isHolding}
         isExploding={game.isExploding || game.isShieldSaving}
         onPlayCard={handlePlayCard}
