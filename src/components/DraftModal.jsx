@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { playButtonSound, playCardSelectSound } from '../utils/soundEffects';
 
 export default function DraftModal({
   player,
@@ -6,83 +7,218 @@ export default function DraftModal({
   previousHand = [],
   onConfirmDraft,
 }) {
-  // Deduplicar por ID por si el jugador terminó la ronda anterior con copias repetidas
+  // Máximo 2 cartas de la ronda anterior (deduplicadas por ID)
   const uniquePreviousHand = useMemo(() => {
     const seen = new Set();
-    return previousHand.filter((card) => {
-      if (seen.has(card.id)) return false;
-      seen.add(card.id);
-      return true;
-    });
+    return previousHand
+      .filter((card) => {
+        if (seen.has(card.id)) return false;
+        seen.add(card.id);
+        return true;
+      })
+      .slice(0, 2);
   }, [previousHand]);
 
-  const [keptIds, setKeptIds] = useState([]);
-  const [selectedNewIds, setSelectedNewIds] = useState([]);
+  const [step, setStep] = useState('select'); // 'decide' | 'select'
+  const [decideKeepIds, setDecideKeepIds] = useState([]);
+  const [fixedPool, setFixedPool] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
-    const initialKept = uniquePreviousHand.slice(0, 2).map((c) => c.instanceId);
-    setKeptIds(initialKept);
-    setSelectedNewIds([]);
+    if (!player || !draftCards || draftCards.length === 0) return;
+
+    if (uniquePreviousHand.length > 0) {
+      setStep('decide');
+      setDecideKeepIds(uniquePreviousHand.map((c) => c.instanceId));
+      setFixedPool([]);
+      setSelectedIds([]);
+    } else {
+      setStep('select');
+      setDecideKeepIds([]);
+      setFixedPool(draftCards.slice(0, 5));
+      setSelectedIds([]);
+    }
   }, [player?.id, draftCards, uniquePreviousHand]);
 
   if (!player || !draftCards || draftCards.length === 0) return null;
 
-  const keptCards = uniquePreviousHand.filter((c) => keptIds.includes(c.instanceId));
-  const newCardsCount = Math.max(0, 5 - keptCards.length);
-  const visibleNewCards = draftCards.slice(0, newCardsCount);
+  const prevInstanceIdSet = new Set(uniquePreviousHand.map((c) => c.instanceId));
 
-  const totalSelectedCount = keptCards.length + selectedNewIds.length;
-
-  const toggleKeepPrevious = (instanceId) => {
-    setKeptIds((prevKept) => {
-      let nextKept;
-      if (prevKept.includes(instanceId)) {
-        nextKept = prevKept.filter((id) => id !== instanceId);
-      } else {
-        if (prevKept.length >= 2) return prevKept;
-        nextKept = [...prevKept, instanceId];
-      }
-
-      const nextVisibleNewIds = new Set(
-        draftCards.slice(0, Math.max(0, 5 - nextKept.length)).map((c) => c.instanceId)
-      );
-      setSelectedNewIds((prevNew) =>
-        prevNew
-          .filter((id) => nextVisibleNewIds.has(id))
-          .slice(0, Math.max(0, 2 - nextKept.length))
-      );
-
-      return nextKept;
+  // Paso 1: Toggle de qué cartas anteriores llevar (si quiere conservar alguna o cambiar)
+  const toggleDecideCard = (instanceId) => {
+    setDecideKeepIds((prev) => {
+      const exists = prev.includes(instanceId);
+      playCardSelectSound(!exists);
+      return exists ? prev.filter((id) => id !== instanceId) : [...prev, instanceId];
     });
   };
 
-  const handleDiscardAllPrevious = () => {
-    setKeptIds([]);
-  };
-
-  const toggleNewCard = (instanceId) => {
-    setSelectedNewIds((prevNew) => {
-      if (prevNew.includes(instanceId)) {
-        return prevNew.filter((id) => id !== instanceId);
-      }
-      if (keptCards.length + prevNew.length >= 2) {
-        return prevNew;
-      }
-      return [...prevNew, instanceId];
-    });
-  };
-
-  const handleConfirm = () => {
-    if (totalSelectedCount !== 2) return;
-    const chosenNew = visibleNewCards.filter((c) =>
-      selectedNewIds.includes(c.instanceId)
+  // Paso 1 (con 2 cartas): Conservar ambas inmediatamente sin abrir la ventana de 5 cartas
+  const handleKeepTwoImmediately = () => {
+    const kept = uniquePreviousHand.filter((c) =>
+      decideKeepIds.includes(c.instanceId)
     );
-    onConfirmDraft([...keptCards, ...chosenNew], keptCards.length);
+    if (kept.length !== 2) return;
+    playButtonSound();
+    onConfirmDraft(kept, 2);
   };
 
+  // Paso 1 -> Paso 2: Fija las 5 cartas de la ventana de selección (no cambian al desmarcar)
+  const handleGoToSelectWindow = (overrideKeepCards = null) => {
+    playButtonSound();
+    const keptToFix =
+      overrideKeepCards !== null
+        ? overrideKeepCards
+        : uniquePreviousHand.filter((c) => decideKeepIds.includes(c.instanceId));
+
+    const newNeeded = Math.max(0, 5 - keptToFix.length);
+    const pool = [...keptToFix, ...draftCards.slice(0, newNeeded)];
+
+    setFixedPool(pool);
+    setSelectedIds(keptToFix.map((c) => c.instanceId));
+    setStep('select');
+  };
+
+  // Paso 2: Solo selecciona/deselecciona dentro de las 5 cartas fijas (nunca elimina cartas del grid)
+  const toggleSelectCard = (instanceId) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(instanceId)) {
+        playCardSelectSound(false);
+        return prev.filter((id) => id !== instanceId);
+      }
+      if (prev.length >= 2) {
+        return prev;
+      }
+      playCardSelectSound(true);
+      return [...prev, instanceId];
+    });
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedIds.length !== 2) return;
+    playButtonSound();
+    const chosen = fixedPool.filter((c) => selectedIds.includes(c.instanceId));
+    const keptCount = chosen.filter((c) =>
+      prevInstanceIdSet.has(c.instanceId)
+    ).length;
+    onConfirmDraft(chosen, keptCount);
+  };
+
+  // ============================================================================
+  // PRIMERA VENTANA: Decidir si conservar o cambiar cartas de la ronda anterior
+  // ============================================================================
+  if (step === 'decide') {
+    const keptCount = decideKeepIds.length;
+    const hasTwoPrev = uniquePreviousHand.length === 2;
+
+    return (
+      <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-2xl bg-white border-4 border-cyan-500 rounded-[2rem] p-5 md:p-7 shadow-2xl flex flex-col gap-5 text-slate-800">
+          <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-4">
+            <span className="text-4xl">{player.avatar}</span>
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-cyan-900 uppercase tracking-tight">
+                Cartas de la Ronda Anterior — {player.name}
+              </h2>
+              <p className="text-sm font-medium text-slate-600">
+                {hasTwoPrev
+                  ? 'Puedes conservar tus 2 cartas directamente o pasar a cambiarlas en el Draft.'
+                  : 'Tienes 1 carta de la ronda anterior. Decide si deseas conservarla y elegir 1 nueva, o descartarla.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 py-2">
+            {uniquePreviousHand.map((card) => {
+              const isKept = decideKeepIds.includes(card.instanceId);
+              return (
+                <button
+                  key={card.instanceId}
+                  type="button"
+                  onClick={() => toggleDecideCard(card.instanceId)}
+                  className={`relative w-44 rounded-2xl border-[3px] p-4 flex flex-col items-center justify-between text-center min-h-[175px] transition-all ${
+                    card.tailwindClasses
+                  } ${
+                    isKept
+                      ? 'ring-4 ring-cyan-400 scale-[1.03] shadow-lg'
+                      : 'opacity-50 grayscale-[35%] hover:opacity-80'
+                  }`}
+                >
+                  <span
+                    className={`absolute -top-2.5 -right-2.5 font-black text-xs px-2.5 py-0.5 rounded-full shadow ${
+                      isKept
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-slate-400 text-white'
+                    }`}
+                  >
+                    {isKept ? '✓ Conservar' : '✕ Descartar'}
+                  </span>
+                  <span className="text-4xl my-1">{card.emoji}</span>
+                  <div className="font-black text-sm leading-tight">
+                    {card.name}
+                  </div>
+                  <p className="text-xs font-medium opacity-85 leading-snug mt-1">
+                    {card.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t-2 border-slate-100">
+            {hasTwoPrev ? (
+              <>
+                {keptCount === 2 && (
+                  <button
+                    type="button"
+                    onClick={handleKeepTwoImmediately}
+                    className="flex-1 py-3.5 px-5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-black text-sm md:text-base uppercase border-2 border-emerald-300 shadow-[0_4px_0_#047857] active:translate-y-[2px] active:shadow-none transition"
+                  >
+                    ✅ Conservar mis 2 Cartas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleGoToSelectWindow()}
+                  className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-sm md:text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
+                >
+                  {keptCount === 2
+                    ? '🔄 Cambiar Alguna Carta'
+                    : keptCount === 1
+                    ? '🔄 Conservar 1 y Elegir 1 Más'
+                    : '🗑️ Descartar y Ver 5 Cartas'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleGoToSelectWindow(uniquePreviousHand)}
+                  className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-sm md:text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
+                >
+                  ✅ Conservar y Elegir 1 Más
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGoToSelectWindow([])}
+                  className="flex-1 py-3.5 px-5 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black text-sm md:text-base uppercase border-2 border-red-400 shadow-[0_4px_0_#991b1b] active:translate-y-[2px] active:shadow-none transition"
+                >
+                  🗑️ Descartarla (5 Cartas Nuevas)
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // SEGUNDA VENTANA: Selección sobre 5 cartas fijas
+  // ============================================================================
   return (
     <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl bg-white border-4 border-cyan-500 rounded-[2rem] p-5 md:p-7 shadow-2xl flex flex-col gap-4 text-slate-800">
+      <div className="w-full max-w-4xl bg-white border-4 border-cyan-500 rounded-[2rem] p-5 md:p-7 shadow-2xl flex flex-col gap-5 text-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b-2 border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <span className="text-4xl">{player.avatar}</span>
@@ -91,15 +227,7 @@ export default function DraftModal({
                 Draft de Ronda — {player.name}
               </h2>
               <p className="text-sm font-medium text-slate-600">
-                {uniquePreviousHand.length > 0 ? (
-                  <>
-                    Decide si <strong className="text-cyan-700">conservas</strong> tus cartas anteriores o las <strong className="text-red-500">descartas</strong>, y completa <strong className="text-amber-600">2 cartas</strong> en total.
-                  </>
-                ) : (
-                  <>
-                    Elige <strong className="text-cyan-700">2 cartas</strong> para tu mano inicial. Las otras 3 se descartarán.
-                  </>
-                )}
+                Elige <strong className="text-cyan-700">2 cartas</strong> de estas 5 para tu mano inicial. Las demás se descartarán al confirmar.
               </p>
             </div>
           </div>
@@ -109,107 +237,51 @@ export default function DraftModal({
               Seleccionadas
             </span>
             <span className="text-2xl font-black text-cyan-900">
-              {totalSelectedCount} / 2
+              {selectedIds.length} / 2
             </span>
           </div>
         </div>
 
-        {/* Selector de cartas de la ronda anterior (conservar o descartar) */}
-        {uniquePreviousHand.length > 0 && (
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-500 mr-1">
-                Ronda anterior:
-              </span>
-              {uniquePreviousHand.map((card) => {
-                const isKept = keptIds.includes(card.instanceId);
-                const disableKeepMore = !isKept && keptIds.length >= 2;
-                return (
-                  <button
-                    key={card.instanceId}
-                    type="button"
-                    disabled={disableKeepMore}
-                    onClick={() => toggleKeepPrevious(card.instanceId)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black border-2 transition flex items-center gap-1.5 ${
-                      isKept
-                        ? 'bg-cyan-500 border-cyan-600 text-white shadow-sm'
-                        : disableKeepMore
-                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-                        : 'bg-white border-slate-300 text-slate-600 hover:border-cyan-400'
-                    }`}
-                  >
-                    <span>{card.emoji}</span>
-                    <span>{card.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/15">
-                      {isKept ? 'Conservar ✓' : 'Descartada'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {keptCards.length > 0 && (
-              <button
-                type="button"
-                onClick={handleDiscardAllPrevious}
-                className="shrink-0 text-xs font-black text-white bg-red-500 hover:bg-red-600 px-3.5 py-1.5 rounded-xl shadow-[0_3px_0_#991b1b] active:translate-y-[2px] active:shadow-none transition uppercase"
-              >
-                🗑️ Descartar todas
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Ventana de selección de 5 cartas (K conservadas + (5-K) nuevas únicas) */}
+        {/* Grid de 5 cartas fijas */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {keptCards.map((card) => (
-            <button
-              key={`kept_${card.instanceId}`}
-              type="button"
-              onClick={() => toggleKeepPrevious(card.instanceId)}
-              title="Toca para descartar esta carta y ver una nueva"
-              className={`relative flex flex-col items-center justify-between text-center p-3.5 rounded-2xl border-[3px] transition-all min-h-[170px] ${card.tailwindClasses} ring-4 ring-cyan-400 scale-[1.03] shadow-lg -translate-y-1`}
-            >
-              <span className="absolute -top-2.5 -right-2.5 bg-cyan-500 text-white font-black text-xs px-2.5 py-0.5 rounded-full shadow">
-                🔄 Conservada
-              </span>
-
-              <span className="text-4xl my-1">{card.emoji}</span>
-              <div className="font-black text-sm leading-tight">
-                {card.name}
-              </div>
-              <p className="text-xs font-medium opacity-85 leading-snug mt-1">
-                {card.description}
-              </p>
-              <span className="text-[10px] font-bold opacity-70 mt-1">
-                (Toca para descartar)
-              </span>
-            </button>
-          ))}
-
-          {visibleNewCards.map((card) => {
-            const isSelected = selectedNewIds.includes(card.instanceId);
-            const isDisabled = !isSelected && totalSelectedCount >= 2;
+          {fixedPool.map((card) => {
+            const isSelected = selectedIds.includes(card.instanceId);
+            const isFromPrevRound = prevInstanceIdSet.has(card.instanceId);
+            const isDisabled = !isSelected && selectedIds.length >= 2;
 
             return (
               <button
                 key={card.instanceId}
                 type="button"
                 disabled={isDisabled}
-                onClick={() => toggleNewCard(card.instanceId)}
-                className={`relative flex flex-col items-center justify-between text-center p-3.5 rounded-2xl border-[3px] transition-all min-h-[170px] ${
+                onClick={() => toggleSelectCard(card.instanceId)}
+                className={`relative flex flex-col items-center justify-between text-center p-3.5 rounded-2xl border-[3px] transition-all min-h-[175px] ${
                   card.tailwindClasses
                 } ${
                   isSelected
-                    ? 'ring-4 ring-yellow-400 scale-[1.03] shadow-lg -translate-y-1'
+                    ? isFromPrevRound
+                      ? 'ring-4 ring-cyan-400 scale-[1.03] shadow-lg -translate-y-1'
+                      : 'ring-4 ring-yellow-400 scale-[1.03] shadow-lg -translate-y-1'
                     : isDisabled
                     ? 'opacity-45 cursor-not-allowed'
                     : 'hover:scale-[1.02] active:scale-95 shadow-sm'
                 }`}
               >
                 {isSelected && (
-                  <span className="absolute -top-2.5 -right-2.5 bg-yellow-400 text-yellow-950 font-black text-xs px-2.5 py-0.5 rounded-full shadow">
-                    ✓ Elegida
+                  <span
+                    className={`absolute -top-2.5 -right-2.5 font-black text-xs px-2.5 py-0.5 rounded-full shadow ${
+                      isFromPrevRound
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-yellow-400 text-yellow-950'
+                    }`}
+                  >
+                    {isFromPrevRound ? '🔄 Conservada' : '✓ Elegida'}
+                  </span>
+                )}
+
+                {!isSelected && isFromPrevRound && (
+                  <span className="absolute -top-2.5 -right-2.5 bg-slate-500 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow">
+                    Ronda anterior
                   </span>
                 )}
 
@@ -228,13 +300,13 @@ export default function DraftModal({
         <div className="flex justify-end pt-1">
           <button
             type="button"
-            disabled={totalSelectedCount !== 2}
-            onClick={handleConfirm}
+            disabled={selectedIds.length !== 2}
+            onClick={handleConfirmSelection}
             className="w-full md:w-auto px-8 py-3.5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed text-yellow-950 font-black text-base uppercase tracking-wide border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
           >
-            {totalSelectedCount === 2
+            {selectedIds.length === 2
               ? '✅ Confirmar Mano Inicial (2 Cartas)'
-              : `Selecciona ${2 - totalSelectedCount} carta(s) más`}
+              : `Selecciona ${2 - selectedIds.length} carta(s) más`}
           </button>
         </div>
       </div>

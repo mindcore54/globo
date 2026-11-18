@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AVATARS } from '../data/gameData';
+import { playButtonSound, playErrorSound } from '../utils/soundEffects';
 
 export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const [players, setPlayers] = useState(initialPlayers);
@@ -13,17 +14,20 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const handleDigit = (digit) => {
     setError('');
     if (pin.length < 4) {
+      playButtonSound();
       setPin((prev) => prev + digit);
     }
   };
 
   const handleBackspace = () => {
     setError('');
+    playButtonSound();
     setPin((prev) => prev.slice(0, -1));
   };
 
   const handleClearPin = () => {
     setError('');
+    playButtonSound();
     setPin('');
   };
 
@@ -31,22 +35,27 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
     e?.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
+      playErrorSound();
       setError('Ingresa un nombre para el jugador.');
       return;
     }
     if (players.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      playErrorSound();
       setError('Ya existe un jugador con ese nombre.');
       return;
     }
     if (pin.length !== 4) {
+      playErrorSound();
       setError('El PIN secreto debe tener exactamente 4 dígitos.');
       return;
     }
     if (players.length >= 8) {
+      playErrorSound();
       setError('Máximo 8 jugadores por partida.');
       return;
     }
 
+    playButtonSound();
     const newPlayer = {
       id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: trimmed,
@@ -68,6 +77,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   };
 
   const handleRemovePlayer = (id) => {
+    playButtonSound();
     setPlayers((prev) => prev.filter((p) => p.id !== id));
   };
 
@@ -151,7 +161,10 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                       key={avatar}
                       type="button"
                       disabled={players.length >= 8}
-                      onClick={() => setSelectedAvatar(avatar)}
+                      onClick={() => {
+                        playButtonSound();
+                        setSelectedAvatar(avatar);
+                      }}
                       className={`text-2xl md:text-3xl py-2 rounded-2xl border-2 transition-all active:scale-95 ${
                         isSelected
                           ? 'bg-yellow-300 border-yellow-500 scale-105 shadow-[0_3px_0_rgb(202,138,4)]'
@@ -316,7 +329,10 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               <button
                 type="button"
                 disabled={!canStart}
-                onClick={() => onStartGame(players)}
+                onClick={() => {
+                  playButtonSound();
+                  onStartGame(players);
+                }}
                 className="w-full py-4 rounded-2xl bg-yellow-400 hover:bg-yellow-300 disabled:bg-white/40 disabled:text-cyan-950/40 disabled:border-white/40 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed text-yellow-900 font-black text-lg uppercase tracking-wide border-2 border-yellow-300 shadow-[0_5px_0_rgb(202,138,4)] hover:shadow-[0_2px_0_rgb(202,138,4)] hover:translate-y-[3px] transition-all"
               >
                 {canStart

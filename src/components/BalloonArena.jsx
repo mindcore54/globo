@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { playButtonSound } from '../utils/soundEffects';
 
 export default function BalloonArena({
   riskPercent,
@@ -151,7 +152,10 @@ export default function BalloonArena({
 
           <button
             type="button"
-            onClick={() => setBalloonEmoji((prev) => (prev === '🎈' ? '🐡' : '🎈'))}
+            onClick={() => {
+              playButtonSound();
+              setBalloonEmoji((prev) => (prev === '🎈' ? '🐡' : '🎈'));
+            }}
             className="bg-white/85 hover:bg-white border-2 border-white px-3 py-1 rounded-full text-cyan-950 font-black shadow-sm active:scale-95 transition"
             title="Cambiar aspecto del globo"
           >

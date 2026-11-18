@@ -1,4 +1,5 @@
 import React from 'react';
+import { playButtonSound } from '../utils/soundEffects';
 
 export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBackToSetup }) {
   if (!winner) return null;
@@ -29,14 +30,20 @@ export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBack
         <div className="w-full flex flex-col sm:flex-row gap-3 pt-4 border-t-2 border-slate-100">
           <button
             type="button"
-            onClick={onPlayAgain}
+            onClick={() => {
+              playButtonSound();
+              onPlayAgain();
+            }}
             className="flex-1 py-3.5 px-5 rounded-2xl bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-black text-base uppercase border-2 border-yellow-300 shadow-[0_4px_0_rgb(202,138,4)] active:translate-y-[2px] active:shadow-none transition"
           >
             🔄 Revancha
           </button>
           <button
             type="button"
-            onClick={onBackToSetup}
+            onClick={() => {
+              playButtonSound();
+              onBackToSetup();
+            }}
             className="flex-1 py-3.5 px-5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-black text-base uppercase border-2 border-cyan-400 shadow-[0_4px_0_#155e75] active:translate-y-[2px] active:shadow-none transition"
           >
             ⚙️ Cambiar Jugadores

@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import {
+  playButtonSound,
+  playPinUnlockSound,
+  playErrorSound,
+} from '../utils/soundEffects';
 
 export default function PinLockModal({ player, roundNumber, onUnlock }) {
   const [enteredPin, setEnteredPin] = useState('');
@@ -20,8 +25,10 @@ export default function PinLockModal({ player, roundNumber, onUnlock }) {
 
       if (nextPin.length === 4) {
         if (nextPin === player.pin) {
+          playPinUnlockSound();
           onUnlock();
         } else {
+          playErrorSound();
           setErrorShake(true);
           setErrorMsg('PIN incorrecto. Intenta de nuevo.');
           setTimeout(() => {
@@ -29,12 +36,15 @@ export default function PinLockModal({ player, roundNumber, onUnlock }) {
             setErrorShake(false);
           }, 450);
         }
+      } else {
+        playButtonSound();
       }
     },
     [enteredPin, onUnlock, player]
   );
 
   const handleDelete = useCallback(() => {
+    playButtonSound();
     setErrorMsg('');
     setEnteredPin((prev) => prev.slice(0, -1));
   }, []);
@@ -115,6 +125,7 @@ export default function PinLockModal({ player, roundNumber, onUnlock }) {
           <button
             type="button"
             onClick={() => {
+              playButtonSound();
               setEnteredPin('');
               setErrorMsg('');
             }}

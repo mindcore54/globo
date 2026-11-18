@@ -1,4 +1,5 @@
 import React from 'react';
+import { playButtonSound, playCardSelectSound } from '../utils/soundEffects';
 
 export default function TargetSelectorModal({
   pendingCard,
@@ -37,7 +38,10 @@ export default function TargetSelectorModal({
               <button
                 key={target.id}
                 type="button"
-                onClick={() => onSelectTarget(target)}
+                onClick={() => {
+                  playCardSelectSound(true);
+                  onSelectTarget(target);
+                }}
                 className="flex items-center justify-between bg-slate-50 hover:bg-yellow-100 border-2 border-slate-200 hover:border-yellow-500 rounded-2xl p-3 text-left transition active:scale-95 shadow-sm"
               >
                 <div className="flex items-center gap-3">
@@ -64,7 +68,10 @@ export default function TargetSelectorModal({
         <div className="flex justify-end pt-2 border-t-2 border-slate-100">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => {
+              playButtonSound();
+              onCancel();
+            }}
             className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-black text-sm uppercase transition"
           >
             Cancelar
