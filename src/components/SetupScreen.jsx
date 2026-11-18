@@ -185,7 +185,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
                             : 'bg-slate-950 border-slate-700 text-slate-600'
                         }`}
                       >
-                        {digit ? digit : '•'}
+                        {digit ? '●' : ''}
                       </div>
                     );
                   })}
