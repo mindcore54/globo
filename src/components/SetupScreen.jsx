@@ -92,26 +92,9 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
             <span className="text-4xl md:text-5xl drop-shadow">🎈</span>
             <div>
               <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.22)] uppercase">
-                ¡Globo Boom!
+                ¡Boom!
               </h1>
-              <p className="text-xs md:text-sm font-bold text-cyan-950/80 uppercase tracking-wide">
-                Pass &amp; Play · De 2 a 8 jugadores con PIN secreto
-              </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 bg-white/75 border-2 border-white px-4 py-2 rounded-2xl shadow-sm self-start md:self-auto">
-            <span className="text-xs font-black uppercase tracking-wider text-cyan-900">
-              Vidas:
-            </span>
-            <span className="text-lg tracking-wider">
-              {Array.from({ length: livesPerPlayer }).map((_, i) => (
-                <span key={i}>❤️</span>
-              ))}
-            </span>
-            <span className="text-xs font-bold text-cyan-800/70">
-              (3 vidas para todos)
-            </span>
           </div>
         </div>
 
