@@ -10,6 +10,7 @@ import {
   playSuccessSound,
   playExplosionSound,
   playCardSound,
+  playDefeatSound,
 } from './utils/soundEffects';
 import SetupScreen from './components/SetupScreen';
 import PinLockModal from './components/PinLockModal';
@@ -19,6 +20,7 @@ import HeaderPlayers from './components/HeaderPlayers';
 import BalloonArena from './components/BalloonArena';
 import HistorySidebar from './components/HistorySidebar';
 import PlayerHandFooter from './components/PlayerHandFooter';
+import DefeatModal from './components/DefeatModal';
 import VictoryScreen from './components/VictoryScreen';
 
 const HOLD_DURATION_MS = 800;
@@ -75,11 +77,11 @@ function getNextAlivePlayerIndex(players, fromIndex, direction) {
 function calculateNextRisk(currentRisk, heavyAirActive) {
   let increment = 0;
   if (currentRisk < 15) {
-    increment = 2.5;
+    increment = 1.0;
   } else if (currentRisk <= 40) {
-    increment = 4.5;
+    increment = 2.0;
   } else {
-    increment = 7.0;
+    increment = 3.5;
   }
 
   if (heavyAirActive) {
@@ -138,7 +140,7 @@ export default function App() {
       setPendingTargetSelection(null);
       setSavedRoster(rawPlayers);
 
-      const initialLives = rawPlayers.length >= 4 ? 2 : 3;
+      const initialLives = 3;
       const shuffled = shuffleArray(rawPlayers).map((p) => ({
         ...p,
         lives: initialLives,
@@ -169,6 +171,7 @@ export default function App() {
         heavyAirActive: false,
         pendingEndEffects: createInitialPendingEffects(),
         isExploding: false,
+        defeatedInfo: null,
         winner: null,
         logs: [
           makeLog(
@@ -311,7 +314,85 @@ export default function App() {
   );
 
   /**
-   * Maneja la explosión real del globo y reinicio de ronda o victoria.
+   * Inicia una nueva ronda tras una explosión (conservando cartas previas para el Draft).
+   */
+  const advanceToNewRound = useCallback(
+    (current) => {
+      const newDirection = Math.random() < 0.5 ? 1 : -1;
+      const resetPlayers = current.players.map((p) => ({
+        ...p,
+        previousHand: p.lives > 0 ? [...p.hand] : [],
+        hand: [],
+        needsDraft: p.lives > 0,
+      }));
+
+      const nextStarterIdx = getNextAlivePlayerIndex(
+        resetPlayers,
+        current.currentPlayerIndex,
+        newDirection
+      );
+      const nextStarter = resetPlayers[nextStarterIdx];
+      const nextRound = current.roundNumber + 1;
+
+      commitGame({
+        ...current,
+        roundNumber: nextRound,
+        players: resetPlayers,
+        currentPlayerIndex: nextStarterIdx,
+        direction: newDirection,
+        riskPercent: 0.5,
+        ultimaCartaJugada: null,
+        isLocked: true,
+        draftCards: [],
+        impulsesRemaining: 3,
+        impulsesCompleted: 0,
+        cardsUsedThisTurn: 0,
+        recompensaCartaExtra: false,
+        freezeNextImpulse: false,
+        shieldActive: false,
+        heavyAirActive: false,
+        pendingEndEffects: createInitialPendingEffects(),
+        isExploding: false,
+        defeatedInfo: null,
+        logs: [
+          makeLog(
+            `🔄 ¡Ronda #${nextRound}! Globo en 0.5%. Giro ${
+              newDirection === 1 ? 'Horario ➡' : 'Antihorario ⬅'
+            }. Inicia ${nextStarter.avatar} ${nextStarter.name}.`,
+            'round'
+          ),
+          ...current.logs,
+        ].slice(0, 60),
+      });
+    },
+    [commitGame]
+  );
+
+  /**
+   * Continúa después de cerrar la pantalla de Derrota de un jugador eliminado.
+   */
+  const handleContinueAfterDefeat = useCallback(() => {
+    const current = gameRef.current;
+    if (!current) return;
+
+    const alivePlayers = current.players.filter((p) => p.lives > 0);
+    if (alivePlayers.length <= 1) {
+      const winner = alivePlayers[0] || current.defeatedInfo?.player;
+      commitGame({
+        ...current,
+        isExploding: false,
+        defeatedInfo: null,
+        winner,
+      });
+      setPhase('victory');
+      return;
+    }
+
+    advanceToNewRound(current);
+  }, [advanceToNewRound, commitGame]);
+
+  /**
+   * Maneja la explosión real del globo y reinicio de ronda, derrota o victoria.
    */
   const triggerExplosion = useCallback(
     (g) => {
@@ -367,6 +448,23 @@ export default function App() {
         if (!current) return;
 
         const alivePlayers = current.players.filter((p) => p.lives > 0);
+        const eliminatedNow =
+          current.players[current.currentPlayerIndex]?.lives === 0;
+
+        if (eliminatedNow) {
+          playDefeatSound();
+          commitGame({
+            ...current,
+            isExploding: false,
+            defeatedInfo: {
+              player: current.players[current.currentPlayerIndex],
+              explodedRisk: g.riskPercent,
+              aliveCount: alivePlayers.length,
+            },
+          });
+          return;
+        }
+
         if (alivePlayers.length <= 1) {
           const winner = alivePlayers[0] || updatedVictim;
           commitGame({
@@ -378,55 +476,10 @@ export default function App() {
           return;
         }
 
-        // Reiniciar nueva ronda guardando las cartas previas de los sobrevivientes para elegir conservar o descartar
-        const newDirection = Math.random() < 0.5 ? 1 : -1;
-        const resetPlayers = current.players.map((p) => ({
-          ...p,
-          previousHand: p.lives > 0 ? [...p.hand] : [],
-          hand: [],
-          needsDraft: p.lives > 0,
-        }));
-
-        const nextStarterIdx = getNextAlivePlayerIndex(
-          resetPlayers,
-          current.currentPlayerIndex,
-          newDirection
-        );
-        const nextStarter = resetPlayers[nextStarterIdx];
-        const nextRound = current.roundNumber + 1;
-
-        commitGame({
-          ...current,
-          roundNumber: nextRound,
-          players: resetPlayers,
-          currentPlayerIndex: nextStarterIdx,
-          direction: newDirection,
-          riskPercent: 0.5,
-          ultimaCartaJugada: null,
-          isLocked: true,
-          draftCards: [],
-          impulsesRemaining: 3,
-          impulsesCompleted: 0,
-          cardsUsedThisTurn: 0,
-          recompensaCartaExtra: false,
-          freezeNextImpulse: false,
-          shieldActive: false,
-          heavyAirActive: false,
-          pendingEndEffects: createInitialPendingEffects(),
-          isExploding: false,
-          logs: [
-            makeLog(
-              `🔄 ¡Ronda #${nextRound}! Globo en 0.5%. Giro ${
-                newDirection === 1 ? 'Horario ↻' : 'Antihorario ↺'
-              }. Inicia ${nextStarter.avatar} ${nextStarter.name}.`,
-              'round'
-            ),
-            ...current.logs,
-          ].slice(0, 60),
-        });
+        advanceToNewRound(current);
       }, 1350);
     },
-    [commitGame, stopHold]
+    [advanceToNewRound, commitGame, stopHold]
   );
 
   /**
@@ -876,6 +929,27 @@ export default function App() {
       : otherAlivePlayers
     : [];
 
+  const effectiveDirection =
+    game.pendingEndEffects.reverseCount % 2 === 1
+      ? game.direction * -1
+      : game.direction;
+
+  let nextPreviewPlayer = null;
+  if (game.pendingEndEffects.sniperTargetId) {
+    nextPreviewPlayer =
+      game.players.find(
+        (p) => p.id === game.pendingEndEffects.sniperTargetId && p.lives > 0
+      ) || null;
+  }
+  if (!nextPreviewPlayer) {
+    const previewIdx = getNextAlivePlayerIndex(
+      game.players,
+      game.currentPlayerIndex,
+      effectiveDirection
+    );
+    nextPreviewPlayer = game.players[previewIdx] || null;
+  }
+
   const pastelColors = [
     'bg-cyan-400',
     'bg-teal-300',
@@ -896,6 +970,7 @@ export default function App() {
         currentPlayerIndex={game.currentPlayerIndex}
         direction={game.direction}
         roundNumber={game.roundNumber}
+        nextPlayer={nextPreviewPlayer}
       />
 
       {/* 2 & 3. Zona Central Interactiva (Globo) + Panel Lateral de Historial */}
@@ -937,8 +1012,18 @@ export default function App() {
         onPlayCard={handlePlayCard}
       />
 
-      {/* Modales de Privacidad, Draft y Selección de Objetivo */}
-      {game.isLocked && !game.isExploding && (
+      {/* Modales de Derrota, Privacidad, Draft y Selección de Objetivo */}
+      {game.defeatedInfo && (
+        <DefeatModal
+          defeatedPlayer={game.defeatedInfo.player}
+          roundNumber={game.roundNumber}
+          explodedRisk={game.defeatedInfo.explodedRisk}
+          aliveCount={game.defeatedInfo.aliveCount}
+          onContinue={handleContinueAfterDefeat}
+        />
+      )}
+
+      {game.isLocked && !game.isExploding && !game.defeatedInfo && (
         <PinLockModal
           player={currentPlayer}
           roundNumber={game.roundNumber}

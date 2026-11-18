@@ -348,3 +348,48 @@ export function playErrorSound() {
   osc.start(now);
   osc.stop(now + 0.2);
 }
+
+/**
+ * Sonido dramático descendente cuando un jugador pierde todas sus vidas y es eliminado.
+ */
+export function playDefeatSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  stopInflateSound();
+
+  const now = ctx.currentTime;
+  const notes = [
+    { freq: 392.0, start: 0, dur: 0.24 },     // G4
+    { freq: 369.99, start: 0.23, dur: 0.24 }, // F#4
+    { freq: 349.23, start: 0.46, dur: 0.24 }, // F4
+    { freq: 329.63, start: 0.69, dur: 0.58 }, // E4 con caída final
+  ];
+
+  notes.forEach((n, idx) => {
+    const startTime = now + n.start;
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(n.freq, startTime);
+    if (idx === notes.length - 1) {
+      osc.frequency.exponentialRampToValueAtTime(246.94, startTime + n.dur);
+    }
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1100, startTime);
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.linearRampToValueAtTime(0.18, startTime + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + n.dur);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + n.dur + 0.03);
+  });
+}

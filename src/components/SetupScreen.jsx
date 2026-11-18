@@ -9,7 +9,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  const livesPerPlayer = players.length >= 4 ? 2 : 3;
+  const livesPerPlayer = 3;
 
   const handleDigit = (digit) => {
     setError('');
@@ -110,7 +110,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
               ))}
             </span>
             <span className="text-xs font-bold text-cyan-800/70">
-              ({players.length >= 4 ? '4+ jug.' : '2-3 jug.'})
+              (3 vidas para todos)
             </span>
           </div>
         </div>
