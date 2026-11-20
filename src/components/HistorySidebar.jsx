@@ -25,7 +25,7 @@ export default function HistorySidebar({ logs }) {
   };
 
   return (
-    <aside className="w-full md:w-72 lg:w-80 bg-white/50 backdrop-blur-xl border-t-4 md:border-t-0 md:border-l-4 border-white/60 flex flex-col shrink-0 max-h-36 md:max-h-none shadow-inner">
+    <aside className="w-full md:w-72 lg:w-80 min-h-0 bg-white/50 backdrop-blur-xl border-t-4 md:border-t-0 md:border-l-4 border-white/60 flex flex-col shrink-0 max-h-28 sm:max-h-32 md:max-h-none shadow-inner">
       <div className="px-3.5 py-2 border-b-2 border-white/60 flex items-center justify-between shrink-0">
         <h3 className="text-xs font-black uppercase tracking-widest text-cyan-950 flex items-center gap-1.5">
           <span>📜</span>

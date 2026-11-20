@@ -5,7 +5,7 @@ export default function VictoryScreen({ winner, roundNumber, onPlayAgain, onBack
   if (!winner) return null;
 
   return (
-    <div className="min-h-screen w-full bg-cyan-400 bg-moving-stripes flex items-center justify-center p-4 font-sans">
+    <div className="h-[100dvh] max-h-[100dvh] w-full bg-cyan-400 bg-moving-stripes flex items-center justify-center p-4 overflow-y-auto font-sans">
       <div className="w-full max-w-lg bg-white border-4 border-yellow-400 rounded-[2rem] p-8 shadow-2xl flex flex-col items-center text-center gap-5">
         <div className="text-xs font-black uppercase tracking-widest bg-yellow-300 text-yellow-950 border-2 border-yellow-400 px-4 py-1.5 rounded-full shadow-sm">
           🏆 ¡Victoria tras {roundNumber} Ronda(s)!

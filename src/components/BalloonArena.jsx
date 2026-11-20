@@ -115,26 +115,26 @@ export default function BalloonArena({
   const badges = getEffectBadges();
 
   return (
-    <section className="flex-1 flex flex-col items-center justify-between p-3 md:p-5 relative overflow-hidden">
+    <section className="flex-1 min-h-0 flex flex-col items-center justify-between p-2 sm:p-3 md:p-4 relative overflow-hidden">
       {/* Barra superior: Indicadores grandes de Riesgo, Impulsos y selector de skin */}
-      <div className="w-full max-w-2xl flex flex-col items-center gap-2 z-10">
-        <div className="w-full grid grid-cols-2 gap-3">
-          <div className="bg-white/85 backdrop-blur-md border-4 border-white rounded-3xl px-4 py-2 flex flex-col items-center justify-center shadow-lg">
-            <span className="text-[11px] md:text-xs uppercase tracking-wider text-cyan-900/70 font-black">
+      <div className="w-full max-w-2xl flex flex-col items-center gap-1.5 z-10 shrink-0">
+        <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="bg-white/85 backdrop-blur-md border-4 border-white rounded-2xl sm:rounded-3xl px-3 sm:px-4 py-1.5 flex flex-col items-center justify-center shadow-lg">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider text-cyan-900/70 font-black">
               Riesgo de Explosión
             </span>
             <span
-              className={`text-2xl md:text-4xl font-black tabular-nums ${getRiskColorClass()}`}
+              className={`text-xl sm:text-2xl md:text-3xl font-black tabular-nums ${getRiskColorClass()}`}
             >
               {riskPercent.toFixed(1)}%
             </span>
           </div>
 
-          <div className="bg-white/85 backdrop-blur-md border-4 border-white rounded-3xl px-4 py-2 flex flex-col items-center justify-center shadow-lg">
-            <span className="text-[11px] md:text-xs uppercase tracking-wider text-cyan-900/70 font-black">
+          <div className="bg-white/85 backdrop-blur-md border-4 border-white rounded-2xl sm:rounded-3xl px-3 sm:px-4 py-1.5 flex flex-col items-center justify-center shadow-lg">
+            <span className="text-[10px] sm:text-xs uppercase tracking-wider text-cyan-900/70 font-black">
               Impulsos restantes
             </span>
-            <span className="text-2xl md:text-4xl font-black text-indigo-600 tabular-nums">
+            <span className="text-xl sm:text-2xl md:text-3xl font-black text-indigo-600 tabular-nums">
               {impulsesRemaining}
             </span>
           </div>
@@ -182,13 +182,13 @@ export default function BalloonArena({
       </div>
 
       {/* Zona Central del Globo Interactivo */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full relative my-2">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center w-full relative my-1">
         {isShieldSaving ? (
-          <div className="absolute w-56 h-56 md:w-72 md:h-72 rounded-full bg-emerald-400/45 blur-2xl animate-pulse pointer-events-none" />
+          <div className="absolute w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full bg-emerald-400/45 blur-2xl animate-pulse pointer-events-none" />
         ) : (
           riskPercent >= 15 &&
           !isExploding && (
-            <div className="absolute w-52 h-52 md:w-64 md:h-64 rounded-full bg-red-500/30 blur-2xl animate-pulse pointer-events-none" />
+            <div className="absolute w-44 h-44 sm:w-52 sm:h-52 md:w-60 md:h-60 rounded-full bg-red-500/30 blur-2xl animate-pulse pointer-events-none" />
           )
         )}
 
@@ -212,7 +212,7 @@ export default function BalloonArena({
           onTouchCancel={onEndHold}
           onContextMenu={(e) => e.preventDefault()}
           style={{ transform: `scale(${totalScale})` }}
-          className={`relative select-none touch-none focus:outline-none transition-transform duration-150 flex flex-col items-center justify-center rounded-full p-6 cursor-pointer disabled:cursor-not-allowed ${
+          className={`relative select-none touch-none focus:outline-none transition-transform duration-150 flex flex-col items-center justify-center rounded-full p-3 sm:p-4 md:p-5 cursor-pointer disabled:cursor-not-allowed ${
             isShieldSaving
               ? 'drop-shadow-[0_0_40px_rgba(16,185,129,0.9)]'
               : isHolding
@@ -221,7 +221,7 @@ export default function BalloonArena({
           }`}
         >
           <span
-            className={`text-8xl md:text-9xl leading-none block ${
+            className={`text-7xl sm:text-8xl md:text-9xl leading-none block ${
               isExploding
                 ? 'animate-explosion-pop'
                 : isShieldSaving
@@ -236,7 +236,7 @@ export default function BalloonArena({
         </button>
 
         <p
-          className={`mt-4 text-xs md:text-sm font-black uppercase tracking-wide px-4 py-1.5 rounded-full shadow-md border-2 ${
+          className={`mt-2 sm:mt-3 text-[11px] sm:text-xs md:text-sm font-black uppercase tracking-wide px-3.5 py-1 rounded-full shadow-md border-2 ${
             isShieldSaving
               ? 'bg-emerald-500 text-white border-emerald-200 animate-pulse'
               : 'text-cyan-950 bg-white/85 border-white'
@@ -253,8 +253,8 @@ export default function BalloonArena({
       </div>
 
       {/* Barra de Progreso Continua (0.8s) + Escalones de impulsos del turno */}
-      <div className="w-full max-w-xl flex flex-col gap-2 z-10">
-        <div className="w-full bg-white/60 backdrop-blur-sm border-[3px] border-white rounded-full h-6 overflow-hidden p-0.5 shadow-md relative">
+      <div className="w-full max-w-xl flex flex-col gap-1.5 z-10 shrink-0">
+        <div className="w-full bg-white/60 backdrop-blur-sm border-[3px] border-white rounded-full h-5 overflow-hidden p-0.5 shadow-md relative">
           <div
             className={`h-full rounded-full transition-none ${
               holdProgress > 80

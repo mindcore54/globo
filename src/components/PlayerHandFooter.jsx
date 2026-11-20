@@ -47,26 +47,26 @@ export default function PlayerHandFooter({
   };
 
   return (
-    <footer className="w-full bg-white/35 backdrop-blur-xl border-t-4 border-white/60 px-3 py-2.5 flex flex-col gap-2 shrink-0">
+    <footer className="w-full bg-white/35 backdrop-blur-xl border-t-4 border-white/60 px-3 py-2 flex flex-col gap-1.5 shrink-0">
       {/* Barra superior del footer: Identidad y aviso si está silenciado */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="bg-white/85 border-2 border-white rounded-full px-3 py-1 flex items-center gap-2 shadow-sm">
-            <span className="text-xl leading-none">{player.avatar}</span>
+          <div className="bg-white/85 border-2 border-white rounded-full px-3 py-0.5 flex items-center gap-2 shadow-sm">
+            <span className="text-lg sm:text-xl leading-none">{player.avatar}</span>
             <span className="text-xs md:text-sm font-black uppercase text-cyan-950">
               Mano de {player.name}
             </span>
           </div>
 
           {!isPrivateHidden && silencedThisTurn && (
-            <span className="text-xs font-black uppercase bg-rose-500 text-white border-2 border-rose-300 px-3 py-1 rounded-full shadow animate-pulse">
+            <span className="text-xs font-black uppercase bg-rose-500 text-white border-2 border-rose-300 px-3 py-0.5 rounded-full shadow animate-pulse">
               🤐 ¡Estás silenciado este turno! No puedes usar cartas
             </span>
           )}
         </div>
 
         {!isPrivateHidden && !silencedThisTurn && player.hand.length > 0 && (
-          <span className="text-xs font-black uppercase bg-white/75 text-cyan-950 border-2 border-white px-3 py-1 rounded-full shadow-sm">
+          <span className="text-[11px] sm:text-xs font-black uppercase bg-white/75 text-cyan-950 border-2 border-white px-2.5 py-0.5 rounded-full shadow-sm">
             🃏 Sin límite de cartas por turno
           </span>
         )}
@@ -74,15 +74,15 @@ export default function PlayerHandFooter({
 
       {/* Contenedor horizontal de cartas en mano */}
       {isPrivateHidden ? (
-        <div className="h-28 flex items-center justify-center bg-white/45 border-2 border-white/70 rounded-2xl text-sm text-cyan-950 font-black">
+        <div className="h-20 sm:h-24 flex items-center justify-center bg-white/45 border-2 border-white/70 rounded-2xl text-xs sm:text-sm text-cyan-950 font-black">
           🔒 Cartas ocultas hasta que {player.name} ingrese su PIN
         </div>
       ) : player.hand.length === 0 ? (
-        <div className="h-28 flex items-center justify-center bg-white/40 border-2 border-dashed border-white/80 rounded-2xl text-sm text-cyan-950/75 font-bold">
+        <div className="h-20 sm:h-24 flex items-center justify-center bg-white/40 border-2 border-dashed border-white/80 rounded-2xl text-xs sm:text-sm text-cyan-950/75 font-bold">
           No tienes cartas en la mano. ¡Infla el globo!
         </div>
       ) : (
-        <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 custom-scrollbar">
+        <div className="flex items-stretch gap-2 overflow-x-auto pb-0.5 custom-scrollbar">
           {player.hand.map((card) => {
             const disabled = isCardDisabled(card);
             const isMirrorBlocked = card.id === 'c14' && !ultimaCartaJugada;
@@ -93,7 +93,7 @@ export default function PlayerHandFooter({
                 type="button"
                 disabled={disabled}
                 onClick={() => onPlayCard(card)}
-                className={`shrink-0 w-40 md:w-44 rounded-2xl border-[3px] p-2.5 flex flex-col justify-between text-left transition-all shadow-[0_4px_0_rgba(0,0,0,0.14)] ${
+                className={`shrink-0 w-36 sm:w-40 md:w-44 rounded-2xl border-[3px] p-2 flex flex-col justify-between text-left transition-all shadow-[0_4px_0_rgba(0,0,0,0.14)] ${
                   card.tailwindClasses
                 } ${
                   disabled

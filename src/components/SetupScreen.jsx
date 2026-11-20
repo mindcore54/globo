@@ -101,7 +101,7 @@ export default function SetupScreen({ onStartGame, initialPlayers = [] }) {
   const canStart = players.length >= 2 && players.length <= 8;
 
   return (
-    <div className="min-h-screen w-full bg-cyan-400 bg-moving-stripes text-slate-900 flex flex-col items-center justify-center p-4 md:p-6 overflow-y-auto font-sans">
+    <div className="h-[100dvh] max-h-[100dvh] w-full bg-cyan-400 bg-moving-stripes text-slate-900 flex flex-col items-center justify-start lg:justify-center p-3 md:p-6 overflow-y-auto font-sans">
       <div className="w-full max-w-5xl bg-white/30 backdrop-blur-xl border-4 border-white/50 rounded-[2rem] md:rounded-[3rem] shadow-2xl shadow-cyan-900/20 p-5 md:p-8 flex flex-col gap-5">
         {/* Encabezado estilo arcade */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">

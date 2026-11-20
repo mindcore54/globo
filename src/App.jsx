@@ -1229,7 +1229,7 @@ export default function App() {
 
   return (
     <div
-      className={`h-screen w-screen overflow-hidden flex flex-col justify-between font-sans text-slate-900 selection:bg-white/40 transition-colors duration-1000 ease-in-out ${currentBgColor} bg-moving-stripes`}
+      className={`h-[100dvh] max-h-[100dvh] w-full overflow-hidden flex flex-col justify-between font-sans text-slate-900 selection:bg-white/40 transition-colors duration-1000 ease-in-out ${currentBgColor} bg-moving-stripes`}
     >
       {/* 1. Header / Barra de Jugadores (Pública) */}
       <HeaderPlayers
